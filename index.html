@@ -8,9 +8,13 @@
   // Resolve the theme before first paint so there's no flash of the other one
   (function () {
     var pref = 'auto';
-    try { pref = localStorage.getItem('pr-theme') || 'auto'; } catch (e) {}
+    try { pref = JSON.parse(localStorage.getItem('pr-theme')) || 'auto'; } catch (e) {}
     var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    var art = 'closeup';
+    try { art = JSON.parse(localStorage.getItem('pr-art')) || 'closeup'; } catch (e) {}
+    if (['closeup', 'club', 'poster'].indexOf(art) < 0) art = 'closeup';
+    document.documentElement.setAttribute('data-art', art);
   })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,8 +25,8 @@
   :root {
     color-scheme: light;
     --bg: #F1E6D1;
-    --art: url('img/bg-light.svg');
-    --art-phone: url('img/bg-phone.svg');
+    --art: url('img/closeup-light.webp');
+    --art-phone: url('img/closeup-phone.webp');
     --ink: #1C2230;
     --ink-2: #434856;
     --muted: #5A5E6B;
@@ -69,8 +73,8 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
     --bg: #111723;
-    --art: url('img/bg-dark.svg');
-    --art-phone: url('img/bg-dark.svg');
+    --art: url('img/closeup-dark.webp');
+    --art-phone: url('img/closeup-phone-dark.webp');
     --ink: #EFE5D1;
     --ink-2: #D3CAB8;
     --muted: #AEA697;
@@ -107,20 +111,24 @@
     --input-bg: #0E131D;
     --scrim: rgba(5, 7, 12, 0.62);
   }
+  /* background styles from the design: Close-up (default), Club wall, Poster */
+  :root[data-art="club"] { --art: url('img/club-light.webp'); --art-phone: url('img/club-phone.webp'); }
+  :root[data-art="club"][data-theme="dark"] { --art: url('img/club-dark.webp'); --art-phone: url('img/club-phone-dark.webp'); }
+  :root[data-art="poster"] { --art: url('img/poster-light.webp'); --art-phone: url('img/poster-phone.webp'); }
+  :root[data-art="poster"][data-theme="dark"] { --art: url('img/poster-dark.webp'); --art-phone: url('img/poster-phone-dark.webp'); }
   @media (prefers-reduced-transparency: reduce) {
     :root { --glass: 0.96; --glass-strong: 0.97; --glass-closed: 0.9; --blur: 0px; }
   }
 
   /* ---------- base ---------- */
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
-    font-family: var(--body); font-size: 15px; line-height: 1.45;
-  }
-  body::before {
-    content: ''; position: fixed; inset: 0; z-index: -1;
+  html {
+    -webkit-text-size-adjust: 100%; min-height: 100%;
     background: var(--bg) var(--art) center top / cover no-repeat;
+  }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink);
+    font-family: var(--body); font-size: 15px; line-height: 1.45;
   }
   button, input, textarea, select { font-family: inherit; }
   button { cursor: pointer; }
@@ -206,6 +214,29 @@
   .theme-seg button[aria-pressed="true"] { background: var(--inv-bg); color: var(--inv-ink); }
   .theme-seg .ico { width: 17px; height: 17px; }
   .theme-cycle { display: none; }
+  .lbl-phone { display: none; }
+  .style-pick { position: relative; }
+  .style-btn {
+    width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink);
+    background: rgba(var(--glass-rgb), var(--glass-strong)); display: inline-flex; align-items: center; justify-content: center; padding: 0;
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+  }
+  .style-btn[aria-expanded="true"] { background: var(--inv-bg); color: var(--inv-ink); border-color: var(--inv-bg); }
+  .style-menu {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: 248px; padding: 8px;
+    display: flex; flex-direction: column; gap: 4px; border-radius: 18px;
+    background: var(--modal-bg); border: 1px solid var(--line); box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
+    animation: rise 0.14s ease-out;
+  }
+  .style-menu .menu-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 6px 8px 4px; }
+  .style-menu button {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 6px 10px 6px 6px; border-radius: 12px;
+    border: 1.5px solid transparent; background: transparent; color: var(--ink); font-size: 15px; font-weight: 600; text-align: left;
+  }
+  .style-menu button:hover { background: var(--chip); }
+  .style-menu button[aria-pressed="true"] { border-color: var(--accent); background: var(--chip); }
+  .style-menu .thumb { width: 40px; height: 48px; border-radius: 8px; flex-shrink: 0; background: var(--bg) center top / cover no-repeat; border: 1px solid var(--line); }
+  .style-menu .check { margin-left: auto; color: var(--accent); }
 
   /* ---------- hero ---------- */
   .hero { display: flex; flex-direction: column; gap: 18px; max-width: 660px; padding-top: 16px; }
@@ -410,6 +441,7 @@
   }
   .in-room .ico { width: 16px; height: 16px; }
   .empty-note { font-size: 13.5px; color: var(--muted); }
+  .busy { opacity: 0.45; pointer-events: none; transition: opacity 0.12s; }
 
   /* ---------- admin side panel (stats + supervisors) ---------- */
   .sidebar-overlay { position: fixed; inset: 0; z-index: 25; background: var(--scrim); animation: fadeIn 0.15s ease-out; }
@@ -455,7 +487,12 @@
     .rules { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 899px) {
-    body::before { background-image: var(--art-phone); }
+    html {
+      background-image: linear-gradient(to bottom, transparent calc(100vw * 2.164 - 260px), var(--bg) calc(100vw * 2.164)), var(--art-phone);
+      background-size: 100% auto, 100% auto; background-position: center top, center top;
+    }
+    :root { --glass: 0.86; --glass-strong: 0.94; --glass-closed: 0.62; }
+    *, *::before { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
     .wrap { padding: 0 16px 32px; }
     nav.top { min-height: 72px; }
     .brand-eyebrow { display: none; }
@@ -474,9 +511,12 @@
     }
     .who { background: transparent; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; }
     .who .btn.xs { height: 44px; }
+    .who .dot { display: none; }
+    .lbl-phone { display: inline; }
     .theme-cycle { background: rgba(var(--glass-rgb), var(--glass-strong)); }
     .plist .cell.closed { background: rgba(var(--glass-rgb), var(--glass)); }
     .theme-cycle { display: inline-flex; }
+    .style-btn { width: 44px; height: 44px; }
     .hero { padding-top: 24px; gap: 14px; }
     .lede { font-size: 16px; }
     .now { width: 100%; }
@@ -567,6 +607,8 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   let stats = null;          // null = not loaded, 'loading', 'error', or the computed stats
   let phoneDay = 0;          // which visible day the phone list shows
   let toastTimer = null;
+  let lastNavHtml = '';      // skip re-writing the DOM when nothing changed
+  let lastAppHtml = '';
   const detailsCache = {};   // requestId -> {instrument, note} (admin only)
   const detailsLoading = new Set();
 
@@ -587,6 +629,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
     auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
     chart: '<path d="M4 19V10M12 19V5M20 19v-6"/>',
+    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
     pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/>'
   };
@@ -676,6 +719,51 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     if (darkQuery.addEventListener) darkQuery.addEventListener('change', onChange); else darkQuery.addListener(onChange);
   }
 
+  // ---------- background style (Close-up / Club wall / Poster) ----------
+  const ART_STYLES = [
+    { id: 'closeup', name: 'Close-up' },
+    { id: 'club', name: 'Club wall' },
+    { id: 'poster', name: 'Poster' }
+  ];
+  let styleMenuOpen = false;
+  function artPref() { const a = store('pr-art'); return ART_STYLES.some(x => x.id === a) ? a : 'closeup'; }
+  function setArt(id) {
+    store('pr-art', id);
+    document.documentElement.setAttribute('data-art', id);
+  }
+  function closeStyleMenu(focusButton) {
+    const menu = nav.querySelector('.style-menu');
+    if (menu) menu.remove();
+    styleMenuOpen = false;
+    const btn = nav.querySelector('.style-btn');
+    if (btn) { btn.setAttribute('aria-expanded', 'false'); if (focusButton) btn.focus(); }
+  }
+  function openStyleMenu() {
+    const wrap = nav.querySelector('.style-pick');
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const current = document.documentElement.getAttribute('data-art') || artPref();
+    const menu = document.createElement('div');
+    menu.className = 'style-menu';
+    menu.setAttribute('role', 'group');
+    menu.setAttribute('aria-label', 'Background style');
+    menu.innerHTML = '<div class="menu-title">Background</div>' + ART_STYLES.map(a =>
+      `<button type="button" data-art-set="${a.id}" aria-pressed="${a.id === current}">
+        <span class="thumb" style="background-image:url('img/${a.id}-${dark ? 'phone-dark' : 'phone'}.webp')"></span>${a.name}
+        ${a.id === current ? icon('check', 'check') : ''}</button>`).join('');
+    wrap.appendChild(menu);
+    styleMenuOpen = true;
+    nav.querySelector('.style-btn').setAttribute('aria-expanded', 'true');
+    menu.querySelectorAll('[data-art-set]').forEach(b => b.onclick = () => { setArt(b.dataset.artSet); closeStyleMenu(true); });
+    const pressed = menu.querySelector('[aria-pressed="true"]');
+    if (pressed) pressed.focus();
+  }
+  document.addEventListener('click', e => {
+    if (styleMenuOpen && !e.target.closest('.style-pick')) closeStyleMenu(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && styleMenuOpen) closeStyleMenu(true);
+  });
+
   // ---------- this browser's own requests (shown as "Requested") ----------
   function myRequests() { const r = store('pr-requests'); return r && typeof r === 'object' ? r : {}; }
   function isMine(cell, key) {
@@ -758,6 +846,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     const themeBtn = (value, label, ic) =>
       `<button type="button" data-theme-set="${value}" aria-pressed="${pref === value}" aria-label="${label}" title="${label}">${icon(ic)}</button>`;
     const themeControl = `
+      <div class="style-pick"><button type="button" class="style-btn" aria-haspopup="true" aria-expanded="false" aria-label="Background style" title="Background style">${icon('image')}</button></div>
       <div class="theme-seg" role="group" aria-label="Theme">
         ${themeBtn('light', 'Light theme', 'sun')}${themeBtn('dark', 'Dark theme', 'moon')}${themeBtn('auto', 'Auto theme (follows device)', 'auto')}
       </div>
@@ -769,7 +858,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
         <button type="button" class="btn xs" id="signOutBtn">Sign out</button></div>`;
     } else if (authChecked) {
       who = `<div class="who"><span class="dot"></span><span class="lbl">Viewing as a visitor</span>
-        <button type="button" class="btn xs inverse" id="adminLoginBtn">Admin sign in</button></div>`;
+        <button type="button" class="btn xs inverse" id="adminLoginBtn"><span class="lbl">Admin sign in</span><span class="lbl-phone">Sign in</span></button></div>`;
     } else {
       who = `<div class="who"><span class="lbl">Checking access…</span></div>`;
     }
@@ -779,12 +868,17 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       : `<a class="btn" href="#rules" aria-label="Room rules">${icon('rules')}<span class="lbl">Room rules</span></a>
          ${authChecked ? `<button type="button" class="btn" id="supApplyBtn" aria-label="Become a supervisor">${icon('supervisor')}<span class="lbl">Become a supervisor</span></button>` : ''}`;
 
-    nav.innerHTML = `
+    const html = `
       <div class="brand">
         <span class="brand-mark">${icon('note')}</span>
         <div><div class="brand-title">Practice Room Schedule</div><div class="brand-eyebrow">KCM · Practice rooms</div></div>
       </div>
       <div class="nav-actions">${who}${extra}${themeControl}</div>`;
+    if (html === lastNavHtml) { applyTheme(); return; }
+    lastNavHtml = html;
+    styleMenuOpen = false;
+    nav.innerHTML = html;
+    nav.querySelector('.style-btn').onclick = () => { if (styleMenuOpen) closeStyleMenu(true); else openStyleMenu(); };
 
     nav.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => setTheme(b.dataset.themeSet));
     nav.querySelector('.theme-cycle').onclick = () => {
@@ -992,7 +1086,10 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   function render() {
     const days = getVisibleDays();
     renderNav();
-    app.innerHTML = renderHero(days) + renderSetlist(days) + renderRules();
+    const html = renderHero(days) + renderSetlist(days) + renderRules();
+    if (html === lastAppHtml) return;
+    lastAppHtml = html;
+    app.innerHTML = html;
     attachHandlers();
   }
 
@@ -1021,13 +1118,19 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
 
   // Admin changes run as transactions on the server's current copy of the cell,
   // so a stale local view can never overfill a period or drop someone's request
+  const cellQueues = {};
   function mutateCell(ds, pid, change) {
-    const ref = cellsRef.doc(cellKey(ds, pid));
-    return db.runTransaction(async tx => {
+    const key = cellKey(ds, pid);
+    const ref = cellsRef.doc(key);
+    const run = () => db.runTransaction(async tx => {
       const snap = await tx.get(ref);
       const cur = normalizeCell(snap.exists ? snap.data() : null);
       tx.set(ref, change(cur));
     });
+    // Chain onto the previous write for this period (whether it succeeded or not)
+    const next = (cellQueues[key] || Promise.resolve()).then(run, run);
+    cellQueues[key] = next.catch(() => {});
+    return next;
   }
 
   async function openCellWith(ds, pid, supName) {
@@ -1233,6 +1336,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       return { instrument: det && det.instrument !== undefined ? det.instrument : p.instrument, note: det && det.note !== undefined ? det.note : p.note };
     };
 
+    const busyIds = new Set();
     const { modal, close } = openModal('', {
       wide: true, label: 'Manage ' + period.name,
       onClose: () => { if (activeManage && activeManage.key === key) activeManage = null; }
@@ -1252,7 +1356,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
             const inst = d.loading ? '' : (d.instrument ? ` <span>· ${escapeHtml(d.instrument)}</span>` : '');
             const reason = d.loading ? '<span class="wait-reason none">Loading…</span>'
               : d.note ? `<span class="wait-reason">“${escapeHtml(d.note)}”</span>` : '<span class="wait-reason none">No reason given</span>';
-            return `<div class="wait-row"><div class="wait-info"><span class="wait-name">${escapeHtml(p.name)}${inst}</span>${reason}</div>
+            return `<div class="wait-row${busyIds.has(p.id) ? ' busy' : ''}"><div class="wait-info"><span class="wait-name">${escapeHtml(p.name)}${inst}</span>${reason}</div>
               <button type="button" class="icon-btn solid" data-accept="${escapeHtml(p.id)}" aria-label="Accept ${escapeHtml(p.name)}">${icon('check')}</button>
               <button type="button" class="icon-btn danger" data-decline="${escapeHtml(p.id)}" aria-label="Decline ${escapeHtml(p.name)}">${icon('x')}</button></div>`;
           }).join('')}</div>`;
@@ -1262,7 +1366,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
         : `<div class="in-room">${cell.confirmed.map(p => {
             const d = detailOf(p);
             const title = !d.loading && (d.instrument || d.note) ? ` title="${escapeHtml([d.instrument, d.note].filter(Boolean).join(' · '))}"` : '';
-            return `<span${title}>${escapeHtml(p.name)}<button type="button" data-remove="${escapeHtml(p.id)}" aria-label="Remove ${escapeHtml(p.name)}">${icon('x')}</button></span>`;
+            return `<span${title}${busyIds.has(p.id) ? ' class="busy"' : ''}>${escapeHtml(p.name)}<button type="button" data-remove="${escapeHtml(p.id)}" aria-label="Remove ${escapeHtml(p.name)}">${icon('x')}</button></span>`;
           }).join('')}</div>`;
 
       const warn = left === 1 && cell.pending.length > 0 ? '<span>Accepting one fills the room</span>'
@@ -1287,9 +1391,10 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
         </div>`;
 
       // The live listener redraws after each change, so no manual redraw here
-      modal.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => acceptPending(ds, pid, b.dataset.accept));
-      modal.querySelectorAll('[data-decline]').forEach(b => b.onclick = () => declinePending(ds, pid, b.dataset.decline));
-      modal.querySelectorAll('[data-remove]').forEach(b => b.onclick = () => removeConfirmed(ds, pid, b.dataset.remove));
+      const act = (b, fn, id) => { busyIds.add(id); b.closest('.wait-row, .in-room > span').classList.add('busy'); fn(ds, pid, id).finally(() => { busyIds.delete(id); if (activeManage && activeManage.key === key) draw(); }); };
+      modal.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => act(b, acceptPending, b.dataset.accept));
+      modal.querySelectorAll('[data-decline]').forEach(b => b.onclick = () => act(b, declinePending, b.dataset.decline));
+      modal.querySelectorAll('[data-remove]').forEach(b => b.onclick = () => act(b, removeConfirmed, b.dataset.remove));
       modal.querySelector('#mmSup').onchange = (e) => setSupervisor(ds, pid, e.target.value);
       modal.querySelector('#mmDone').onclick = close;
       modal.querySelector('#mmClosePeriod').onclick = () => { close(); closeCell(ds, pid); };

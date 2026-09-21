@@ -38,3 +38,17 @@ Both themes SHALL use the design's type (Fraunces display, Instrument Sans body,
 #### Scenario: Keyboard use
 - **WHEN** a visitor tabs through the page
 - **THEN** every button and link receives a visible focus outline in the current theme's accent color
+
+### Requirement: Background style choice
+Next to the theme control, the page SHALL offer a background style picker with the design's three illustrations: Close-up (default), Club wall and Poster, each shown with a thumbnail. The choice SHALL apply immediately in both themes, be remembered per browser the same way as the theme, and be applied before first paint.
+
+#### Scenario: Pick Poster
+- **WHEN** a visitor opens the style picker and chooses Poster
+- **THEN** the background immediately changes to the Poster illustration, and after a reload it is still Poster in whichever theme is active
+
+### Requirement: Background scrolls with the page
+The background illustration SHALL scroll together with the page content (not stay fixed to the screen). On screens 900 px and wider it SHALL cover the full length of the page. On phones it SHALL span the full width of the first screen and fade into the page color below it. Scrolling on phones SHALL NOT be slowed by blur effects: frosted panels on phones use a solid tint instead of a live blur.
+
+#### Scenario: Long desktop page
+- **WHEN** the page is scrolled to the bottom at 1280 px wide
+- **THEN** the illustration is still visible behind the house rules and no plain band shows below it

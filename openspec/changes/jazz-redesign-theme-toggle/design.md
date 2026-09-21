@@ -31,7 +31,7 @@ The light and dark boards share identical markup, and their colors map one to on
 It shows Light / Dark / Auto with sun, moon and half-circle icons, as real `<button aria-pressed>` elements. On phones it collapses to a single icon button that cycles through the three. The choice is stored in `localStorage['pr-theme']`, with every read and write wrapped in try/catch. Switching only flips the attribute; nothing re-renders, so open modals and typed input survive.
 
 ### 3. Background art as static files
-The three SVGs (light 1440×1500, dark 1440×1500, phone 780×1688) are downloaded from the canvas into `img/`. They were checked: pure vector, no scripts, no external references. They are shown through a fixed, full-bleed layer (`background-image` on a `::before`) whose image comes from a token. Desktop and phone crops are picked with a media query. The phone crop only exists in light, so dark phones use the dark desktop art with `background-size: cover`. They are served as `<img>`/CSS backgrounds, so any SVG scripting would be inert anyway.
+*Changed after the owner's review:* the art is now pre-rendered from the design's SVGs to WebP images: 3 styles × light/dark desktop at 1800 px wide, and phone at 780 px. Phone-dark versions are centre crops of the dark art, because the design only drew light phone versions. Detailed vector art was slow to repaint while scrolling on phones. The WebP files are 70–500 KB, and only the active style/theme pair is downloaded. The art sits on the page's own background (`html`), so it **scrolls with the content**: `cover` on desktop so it spans the whole page, and on phones full width with a gradient fade into `--bg`. The fixed full-screen layer was dropped because it lagged behind fast scrolling on phones. Phones also drop `backdrop-filter` and use a more opaque glass tint instead. A `data-art` attribute (closeup/club/poster), set before first paint from `localStorage['pr-art']`, selects the image tokens.
 
 ### 4. Rendering stays string-template based, split per region
 The existing render approach is kept, since it's proven and the handlers are already wired: `render()` builds `#app` from `renderNav()`, `renderHero()`, `renderSchedule()` and `renderRules()`. `renderSetlist()` emits the desktop grid (`188px repeat(3, 1fr)`) and, beside it, the phone day tabs and a single-day list. CSS shows one or the other at 900 px. Both come from one `cellParts()` helper, so every cell state is defined once. *Changed during build:* hiding grid columns with CSS couldn't give the phone design's merged card (code, name and state in one row), so the phone list is rendered separately. The selected phone day is kept in a module variable, and today is the default.
@@ -48,11 +48,14 @@ This is derived in render from today's cells and the clock. It shows the open, i
 ### 8. Fonts
 One Google Fonts `css2` link with `display=swap` loads Fraunces (opsz, 500/600, italic), Instrument Sans (400–700) and Bebas Neue, with `preconnect`. The stacks fall back to Georgia and system-ui so layout holds while the fonts load.
 
+### 9. Responsiveness of admin actions
+*Added after the owner's review:* `mutateCell` chains transactions per period, so back-to-back clicks don't collide and retry. The Manage window dims the affected row instantly. `render()` and the nav only write to the DOM when their markup actually changed.
+
 ## Risks / Trade-offs
 
 - **[Backdrop blur cost on low-end phones]** → Blur is limited to the few large panels (nav, hero tag, tabs), not all 27 cells. Cells use the solid glass color with a subtle shadow. Blur is dropped under `prefers-reduced-transparency`.
 - **[Contrast of glass over busy art]** → Glass opacity defaults are 0.74 for cells and 0.88 for strong panels, per the design. Text colors are checked against the flattened panel color in both themes during the build.
-- **[Page weight]** → About 650 KB of SVG. It is cached after the first visit, and only the current theme's image is fetched, because CSS loads backgrounds lazily per active rule.
+- **[Page weight]** → 12 WebP files, 2.7 MB total, but a visitor downloads only one: 70–200 KB on phones and 130–500 KB on desktop. The style picker's thumbnails load the phone images only when the menu is opened.
 - **[localStorage "Requested" is per device]** → A visitor on another device won't see Requested. This is acceptable, and matches the proposal (change 2 adds lookup by code).
 
 ## Migration Plan

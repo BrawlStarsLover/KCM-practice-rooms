@@ -12,6 +12,7 @@ The owner commissioned a redesign in Claude Design (canvas "Practice Rooms Redes
   - frosted-glass panels over an illustrated jazz-instrument background
   - the design's pills, "fill bars" and buttons
 - **Theme switch**: a control in the header to choose Light, Dark or Auto (follow the device). The choice is remembered in that browser. Auto is the default.
+- **Background style picker** (added after review): Close-up, Club wall or Poster, remembered like the theme. The background now scrolls with the page.
 - **New schedule layout**:
   - Desktop: a setlist table, with the fixed periods as rows and the 3 weekdays as columns, plus a status legend.
   - Phones: day tabs with a single-day list.

@@ -26,6 +26,13 @@
 - [x] 4.3 Supervisor selector in the panel using a new `setSupervisor` transaction and the shared "Me" name helper; verify the visitor view updates and that the pending, confirmed and declinedIds lists are unchanged
 - [x] 4.4 Restyle the admin sidebar (statistics, supervisor applications, approved supervisors) with the tokens; verify it in both themes
 
+## 6. Follow-ups from the owner's review
+
+- [x] 6.1 Pre-render all 9 design SVGs to WebP, add phone-dark centre crops, and replace `img/bg-*.svg`; verify every file is served with `image/webp` and the total a visitor downloads is under 500 KB
+- [x] 6.2 Make the background scroll with the page (desktop `cover` over the full page; phone full width plus a fade) and drop `backdrop-filter` on phones; verify there is no plain band at the bottom at 1280 px and that 0 elements use a backdrop blur at 390 px
+- [x] 6.3 Add the background style picker (Close-up / Club wall / Poster) with thumbnails, `pr-art` persistence and pre-paint `data-art`; verify picking Poster, switching to dark and reloading keeps poster-dark, and that the menu closes with Escape or an outside click and returns focus
+- [x] 6.4 Fix the pre-paint theme read (the stored JSON value was compared raw), queue admin transactions per period, dim rows instantly, and skip unchanged DOM writes; verify two back-to-back removals both apply (about 250 ms locally) with instant feedback
+
 ## 5. Quality and ship
 
 - [x] 5.1 Accessibility pass: keyboard through the nav, grid, drawer and modals with visible focus; `aria-label` on icon buttons; contrast of body and caption text against glass in both themes of at least 4.5:1 (spot-check with computed colors); no console errors

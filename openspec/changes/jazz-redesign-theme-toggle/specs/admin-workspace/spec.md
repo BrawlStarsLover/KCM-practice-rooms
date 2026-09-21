@@ -33,3 +33,10 @@ From the Manage window the admin SHALL be able to change the period's supervisor
 #### Scenario: Swap supervisor
 - **WHEN** the admin changes an open period's supervisor from "Ms. Chen" to "Mr. Brooks"
 - **THEN** visitors see "Mr. Brooks" on that period, and its confirmed and pending lists are unchanged
+
+### Requirement: Quick, reliable consecutive actions
+In the Manage window, each accept, decline or remove SHALL give visible feedback immediately (the row dims and cannot be clicked twice). Several actions on the same period made in quick succession SHALL all be applied, in order, without errors.
+
+#### Scenario: Remove two people back to back
+- **WHEN** the admin removes two confirmed people within a second of each other
+- **THEN** both rows dim at once, both are removed, and both are recorded as removed
