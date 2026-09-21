@@ -133,6 +133,7 @@
     transition: filter 0.12s, transform 0.08s;
   }
   button.action:active { transform: scale(0.98); }
+  button.action:disabled { opacity: 0.6; cursor: default; }
   .btn-primary { background: var(--indigo); color: var(--indigo-ink); }
   .btn-primary:hover { filter: brightness(1.08); }
   .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
@@ -279,32 +280,47 @@ const ADMIN_UID = "TdvMfESAnahSxiSGdZvzOGEiAAV2";
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// Local testing only: http://localhost:<port>/?emulator talks to the Firebase
+// emulators (tests/rules/emulate.sh serve) instead of the live database
+if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).has('emulator')) {
+  db.useEmulator('127.0.0.1', 8080);
+  auth.useEmulator('http://127.0.0.1:9099');
+}
 </script>
 
 <script>
 (function() {
   const PERIODS = [
-    { id: 'p1', name: 'Period 1', time: '9:30–10:25', minutes: 55 },
-    { id: 'p2', name: 'Period 2', time: '10:25–11:20', minutes: 55 },
-    { id: 'br', name: 'Break',    time: '11:20–11:40', minutes: 20 },
-    { id: 'p3', name: 'Period 3', time: '11:40–12:40', minutes: 60 },
-    { id: 'p4', name: 'Period 4', time: '12:40–13:40', minutes: 60 },
-    { id: 'l1', name: 'Lunch 1',  time: '13:40–14:10', minutes: 30 },
-    { id: 'l2', name: 'Lunch 2',  time: '14:10–14:40', minutes: 30 },
-    { id: 'p5', name: 'Period 5', time: '14:40–15:35', minutes: 55 },
-    { id: 'p6', name: 'Period 6', time: '15:35–16:30', minutes: 55 }
+    { id: 'p1', name: 'Period 1', time: '9:30–10:25',  end: '10:25', minutes: 55 },
+    { id: 'p2', name: 'Period 2', time: '10:25–11:20', end: '11:20', minutes: 55 },
+    { id: 'br', name: 'Break',    time: '11:20–11:40', end: '11:40', minutes: 20 },
+    { id: 'p3', name: 'Period 3', time: '11:40–12:40', end: '12:40', minutes: 60 },
+    { id: 'p4', name: 'Period 4', time: '12:40–13:40', end: '13:40', minutes: 60 },
+    { id: 'l1', name: 'Lunch 1',  time: '13:40–14:10', end: '14:10', minutes: 30 },
+    { id: 'l2', name: 'Lunch 2',  time: '14:10–14:40', end: '14:40', minutes: 30 },
+    { id: 'p5', name: 'Period 5', time: '14:40–15:35', end: '15:35', minutes: 55 },
+    { id: 'p6', name: 'Period 6', time: '15:35–16:30', end: '16:30', minutes: 55 }
   ];
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const DAYS_SHOWN = 3;
   const CAPACITY = 10;
+  const TICK_MS = 30000;
 
-  let cells = {};            // id -> {status, supervisor, pending:[], confirmed:[]}
+  let cells = {};            // id -> raw doc data for the visible days
   let supervisors = [];      // [{id, name}]
   let supervisorApps = [];   // [{id, name, message}] (admin only)
   let isAdmin = false;
   let authChecked = false;
   let sidebarOpen = false;
   let unsubApps = null;
+  let unsubCells = null;
+  let windowKey = '';        // visible dates the cells listener covers
+  let lastMinute = '';
+  let activeManage = null;   // {key, draw, close} while the Manage modal is open
+  let stats = null;          // null = not loaded, 'loading', 'error', or the computed stats
+  const detailsCache = {};   // requestId -> {instrument, note} (admin only)
+  const detailsLoading = new Set();
 
   const app = document.getElementById('app');
   const subline = document.getElementById('subline');
@@ -328,12 +344,12 @@ const db = firebase.firestore();
   }
   function escapeHtml(s) {
     if (!s) return '';
-    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
-  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function dateStr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function fmtDate(d) { return `${d.getMonth() + 1}/${d.getDate()}`; }
   function isSameDate(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function minuteKey() { const d = new Date(); return dateStr(d) + ' ' + d.getHours() + ':' + d.getMinutes(); }
 
   // Skip weekends — only the next DAYS_SHOWN weekdays, starting today
   function getVisibleDays() {
@@ -347,39 +363,78 @@ const db = firebase.firestore();
     return days;
   }
 
+  function hasEnded(ds, period) {
+    return new Date(ds + 'T' + period.end + ':00') <= new Date();
+  }
+
   function cellKey(ds, pid) { return ds + '_' + pid; }
-  function getCell(ds, pid) {
-    const c = cells[cellKey(ds, pid)];
+
+  // Docs from older versions of the site (no pending/confirmed arrays) read as closed and empty
+  function normalizeCell(c) {
+    const ok = !!c && Array.isArray(c.pending) && Array.isArray(c.confirmed);
     return {
-      status: c ? c.status : 'closed',
-      supervisor: c ? (c.supervisor || '') : '',
-      pending: c && c.pending ? c.pending : [],
-      confirmed: c && c.confirmed ? c.confirmed : []
+      status: ok && c.status === 'open' ? 'open' : 'closed',
+      supervisor: ok ? (c.supervisor || '') : '',
+      pending: ok ? c.pending : [],
+      confirmed: ok ? c.confirmed : [],
+      declinedIds: ok && Array.isArray(c.declinedIds) ? c.declinedIds : []
+    };
+  }
+  function getCell(ds, pid) { return normalizeCell(cells[cellKey(ds, pid)]); }
+
+  // ---------- stats (admin sidebar) ----------
+  function computeStats(allCells, details) {
+    const nameCounts = {}, instrCounts = {};
+    let supervisedMinutes = 0, practiceMinutes = 0;
+    // Group case-insensitively, but show the first spelling we saw
+    const bump = (counts, raw) => {
+      const label = (raw || '').trim();
+      if (!label) return;
+      const k = label.toLowerCase();
+      if (!counts[k]) counts[k] = { label, n: 0 };
+      counts[k].n++;
+    };
+    Object.keys(allCells).forEach(key => {
+      const cell = normalizeCell(allCells[key]);
+      if (cell.confirmed.length === 0) return;
+      const period = PERIODS.find(p => p.id === key.split('_')[1]);
+      if (period) {
+        supervisedMinutes += period.minutes;
+        practiceMinutes += period.minutes * cell.confirmed.length;
+      }
+      cell.confirmed.forEach(p => {
+        bump(nameCounts, p.name);
+        bump(instrCounts, details[p.id] ? details[p.id].instrument : p.instrument);
+      });
+    });
+    const topOf = (counts) => {
+      let best = null;
+      Object.values(counts).forEach(c => { if (!best || c.n > best.n) best = c; });
+      return best ? `${best.label} (${best.n})` : '—';
+    };
+    return {
+      topVisitor: topOf(nameCounts),
+      supervisedHours: (supervisedMinutes / 60).toFixed(1),
+      practiceHours: (practiceMinutes / 60).toFixed(1),
+      topInstrument: topOf(instrCounts)
     };
   }
 
-  // ---------- stats (admin sidebar) ----------
-  function computeStats() {
-    const nameCounts = {}, instrCounts = {};
-    let totalMinutes = 0;
-    Object.keys(cells).forEach(key => {
-      const cell = cells[key];
-      const confirmed = cell.confirmed || [];
-      if (confirmed.length === 0) return;
-      const pid = key.split('_')[1];
-      const period = PERIODS.find(p => p.id === pid);
-      if (period) totalMinutes += period.minutes * confirmed.length;
-      confirmed.forEach(p => {
-        if (p.name) nameCounts[p.name] = (nameCounts[p.name] || 0) + 1;
-        if (p.instrument) instrCounts[p.instrument] = (instrCounts[p.instrument] || 0) + 1;
-      });
-    });
-    const topOf = (obj) => {
-      let best = null, bestN = 0;
-      Object.keys(obj).forEach(k => { if (obj[k] > bestN) { best = k; bestN = obj[k]; } });
-      return best ? `${best} (${bestN})` : '—';
-    };
-    return { topVisitor: topOf(nameCounts), totalHours: (totalMinutes / 60).toFixed(1), topInstrument: topOf(instrCounts) };
+  // Full history is only read when the admin opens the panel, not on every page load
+  async function loadStats() {
+    stats = 'loading';
+    renderSidebar();
+    try {
+      const [cellSnap, detailSnap] = await Promise.all([cellsRef.get(), requestDetailsRef.get()]);
+      const allCells = {}, details = {};
+      cellSnap.forEach(doc => { allCells[doc.id] = doc.data(); });
+      detailSnap.forEach(doc => { details[doc.id] = doc.data(); });
+      stats = computeStats(allCells, details);
+    } catch (e) {
+      stats = 'error';
+      showToast('Could not load statistics — ' + e.message);
+    }
+    renderSidebar();
   }
 
   // ---------- main render ----------
@@ -420,7 +475,6 @@ const db = firebase.firestore();
     html += '</div>';
     app.innerHTML = html;
     attachHandlers();
-    renderSidebar();
   }
 
   function renderSlot(ds, period) {
@@ -428,6 +482,7 @@ const db = firebase.firestore();
     const confirmedN = cell.confirmed.length;
     const pendingN = cell.pending.length;
     const isFull = confirmedN >= CAPACITY;
+    const ended = hasEnded(ds, period);
     let stateCls = '';
     let pill = '';
     let extra = '';
@@ -436,20 +491,23 @@ const db = firebase.firestore();
     if (cell.status === 'closed') {
       pill = `<span class="pill pill-closed">Closed</span>`;
       if (isAdmin) extra = `<button class="action btn-ghost" data-action="open" data-ds="${ds}" data-pid="${period.id}">Open</button>`;
+    } else if (isAdmin) {
+      stateCls = isFull ? 'state-full' : 'state-open';
+      pill = isFull
+        ? `<span class="pill pill-full">Full · ${confirmedN}/${CAPACITY}</span>`
+        : `<span class="pill pill-open">${confirmedN}/${CAPACITY} confirmed</span>`;
+      if (pendingN > 0) pill += ` <span class="pill pill-pending">${pendingN} pending</span>`;
+      if (ended) pill += ` <span class="pill pill-closed">Ended</span>`;
+      extra = `<button class="action btn-primary" data-action="manage" data-ds="${ds}" data-pid="${period.id}">Manage</button>`;
+    } else if (ended) {
+      stateCls = 'state-full';
+      pill = `<span class="pill pill-closed">Ended</span>`;
     } else {
       stateCls = isFull ? 'state-full' : 'state-open';
-      if (isAdmin) {
-        pill = isFull
-          ? `<span class="pill pill-full">Full · ${confirmedN}/${CAPACITY}</span>`
-          : `<span class="pill pill-open">${confirmedN}/${CAPACITY} confirmed</span>`;
-        if (pendingN > 0) pill += ` <span class="pill pill-pending">${pendingN} pending</span>`;
-        extra = `<button class="action btn-primary" data-action="manage" data-ds="${ds}" data-pid="${period.id}">Manage</button>`;
-      } else {
-        pill = isFull
-          ? `<span class="pill pill-full">Full</span>`
-          : `<span class="pill pill-open">${confirmedN}/${CAPACITY} spots filled</span>`;
-        if (!isFull) extra = `<button class="action btn-primary" data-action="apply" data-ds="${ds}" data-pid="${period.id}">Apply</button>`;
-      }
+      pill = isFull
+        ? `<span class="pill pill-full">Full</span>`
+        : `<span class="pill pill-open">${confirmedN}/${CAPACITY} spots filled</span>`;
+      if (!isFull) extra = `<button class="action btn-primary" data-action="apply" data-ds="${ds}" data-pid="${period.id}">Apply</button>`;
     }
 
     return `<div class="slot ${stateCls}">
@@ -470,52 +528,126 @@ const db = firebase.firestore();
         else if (action === 'apply') openApplyModal(ds, pid);
       });
     });
-    sidebarToggle.onclick = () => { sidebarOpen = true; renderSidebar(); };
-    supFab.onclick = openSupervisorAppModal;
   }
 
   // ---------- Firestore refs ----------
   const cellsRef = db.collection('cells');
   const supervisorsRef = db.collection('supervisors');
   const appsRef = db.collection('supervisorApps');
+  const requestDetailsRef = db.collection('requestDetails');
+
+  // Admin changes run as transactions on the server's current copy of the cell,
+  // so a stale local view can never overfill a period or drop someone's request
+  function mutateCell(ds, pid, change) {
+    const ref = cellsRef.doc(cellKey(ds, pid));
+    return db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const cur = normalizeCell(snap.exists ? snap.data() : null);
+      tx.set(ref, change(cur));
+    });
+  }
 
   async function openCellWith(ds, pid, supName) {
-    try { await cellsRef.doc(cellKey(ds, pid)).set({ status: 'open', supervisor: supName, pending: [], confirmed: [] }); }
+    // Re-opening keeps earlier confirmed attendees and outcomes
+    try { await mutateCell(ds, pid, cur => ({ ...cur, status: 'open', supervisor: supName })); }
     catch (e) { showToast('Could not open — ' + e.message); }
   }
   async function closeCell(ds, pid) {
-    try { await cellsRef.doc(cellKey(ds, pid)).set({ status: 'closed', supervisor: '', pending: [], confirmed: [] }); }
-    catch (e) { showToast('Could not close — ' + e.message); }
+    // Keep confirmed for statistics; anyone still waiting counts as declined
+    try {
+      await mutateCell(ds, pid, cur => ({
+        ...cur, status: 'closed', pending: [],
+        declinedIds: [...cur.declinedIds, ...cur.pending.map(p => p.id)]
+      }));
+    } catch (e) { showToast('Could not close — ' + e.message); }
   }
   async function acceptPending(ds, pid, personId) {
-    const cell = getCell(ds, pid);
-    if (cell.confirmed.length >= CAPACITY) { showToast('This period is already full'); return; }
-    const person = cell.pending.find(p => p.id === personId);
-    if (!person) return;
-    const newPending = cell.pending.filter(p => p.id !== personId);
-    const newConfirmed = [...cell.confirmed, person];
-    try { await cellsRef.doc(cellKey(ds, pid)).update({ pending: newPending, confirmed: newConfirmed }); }
-    catch (e) { showToast('Could not accept — ' + e.message); }
+    try {
+      await mutateCell(ds, pid, cur => {
+        if (cur.confirmed.length >= CAPACITY) throw new Error('this period is already full');
+        const person = cur.pending.find(p => p.id === personId);
+        if (!person) throw new Error('that request is no longer pending');
+        return { ...cur, pending: cur.pending.filter(p => p.id !== personId), confirmed: [...cur.confirmed, person] };
+      });
+    } catch (e) { showToast('Could not accept — ' + e.message); }
   }
   async function declinePending(ds, pid, personId) {
-    const cell = getCell(ds, pid);
-    const newPending = cell.pending.filter(p => p.id !== personId);
-    try { await cellsRef.doc(cellKey(ds, pid)).update({ pending: newPending }); }
-    catch (e) { showToast('Could not decline — ' + e.message); }
+    try {
+      await mutateCell(ds, pid, cur => ({
+        ...cur,
+        pending: cur.pending.filter(p => p.id !== personId),
+        declinedIds: cur.pending.some(p => p.id === personId) ? [...cur.declinedIds, personId] : cur.declinedIds
+      }));
+    } catch (e) { showToast('Could not decline — ' + e.message); }
   }
   async function removeConfirmed(ds, pid, personId) {
-    const cell = getCell(ds, pid);
-    const newConfirmed = cell.confirmed.filter(p => p.id !== personId);
-    try { await cellsRef.doc(cellKey(ds, pid)).update({ confirmed: newConfirmed }); }
-    catch (e) { showToast('Could not remove — ' + e.message); }
+    try {
+      await mutateCell(ds, pid, cur => ({
+        ...cur,
+        confirmed: cur.confirmed.filter(p => p.id !== personId),
+        declinedIds: cur.confirmed.some(p => p.id === personId) ? [...cur.declinedIds, personId] : cur.declinedIds
+      }));
+    } catch (e) { showToast('Could not remove — ' + e.message); }
   }
+
+  // The public entry holds only id + name; instrument and reason go to the
+  // admin-only details doc. Both are written in one batch (the rules require it),
+  // and arrayUnion lets simultaneous applicants all get in without clashing.
   async function applyToCell(ds, pid, name, instrument, note) {
     const cell = getCell(ds, pid);
+    const period = PERIODS.find(p => p.id === pid);
+    if (cell.status !== 'open' || hasEnded(ds, period)) { showToast('This period is no longer open'); return false; }
     if (cell.confirmed.length >= CAPACITY) { showToast('This period just filled up'); return false; }
-    const person = { id: uid(), name, instrument, note };
-    const newPending = [...cell.pending, person];
-    try { await cellsRef.doc(cellKey(ds, pid)).update({ pending: newPending }); return true; }
-    catch (e) { showToast('Could not send request — ' + e.message); return false; }
+    const key = cellKey(ds, pid);
+    const detailsDoc = requestDetailsRef.doc();
+    const batch = db.batch();
+    batch.set(detailsDoc, { cellId: key, name, instrument, note, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.update(cellsRef.doc(key), { pending: firebase.firestore.FieldValue.arrayUnion({ id: detailsDoc.id, name }) });
+    try { await batch.commit(); return true; }
+    catch (e) {
+      showToast(e.code === 'permission-denied'
+        ? 'This period just closed or filled up'
+        : 'Could not send request — ' + e.message);
+      return false;
+    }
+  }
+
+  // Admin only: fetch instrument/reason for the requests shown in the Manage modal
+  function ensureDetails(ids, onLoaded) {
+    const missing = ids.filter(id => !(id in detailsCache) && !detailsLoading.has(id));
+    if (missing.length === 0) return;
+    missing.forEach(id => detailsLoading.add(id));
+    Promise.all(missing.map(id => requestDetailsRef.doc(id).get().then(snap => {
+      detailsCache[id] = snap.exists ? snap.data() : {};
+    }).catch(() => { detailsCache[id] = {}; }).finally(() => detailsLoading.delete(id))))
+      .then(onLoaded);
+  }
+
+  // ---------- live data ----------
+  // Only listen to the visible days; re-subscribe when the window moves (e.g. after midnight)
+  function subscribeCells() {
+    const days = getVisibleDays();
+    const key = days.map(dateStr).join(',');
+    if (key === windowKey) return false;
+    windowKey = key;
+    if (unsubCells) unsubCells();
+    const idPath = firebase.firestore.FieldPath.documentId();
+    unsubCells = cellsRef
+      .where(idPath, '>=', dateStr(days[0]))
+      .where(idPath, '<', dateStr(days[days.length - 1]) + '_~')
+      .onSnapshot(snap => {
+        cells = {};
+        snap.forEach(doc => { cells[doc.id] = doc.data(); });
+        render();
+        if (activeManage) activeManage.refresh();
+      }, err => showToast('Sync error — ' + err.message));
+    return true;
+  }
+
+  function tick() {
+    const moved = subscribeCells();
+    const m = minuteKey();
+    if (moved || m !== lastMinute) { lastMinute = m; render(); }
   }
 
   // ---------- modals ----------
@@ -523,7 +655,8 @@ const db = firebase.firestore();
     const period = PERIODS.find(p => p.id === pid);
     const d = new Date(ds + 'T00:00:00');
     const title = `${period.name} · ${DAY_NAMES[d.getDay()]} ${fmtDate(d)}`;
-    let options = `<option value="Me">Me (you)</option>`;
+    const myName = (auth.currentUser && auth.currentUser.displayName) || '';
+    let options = `<option value="__me__">Me (${myName ? escapeHtml(myName) : 'you'})</option>`;
     supervisors.forEach(s => { options += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`; });
 
     const backdrop = document.createElement('div');
@@ -533,16 +666,34 @@ const db = firebase.firestore();
         <h3>Open ${escapeHtml(title)}</h3>
         <div class="sub">Who's supervising this period? Up to ${CAPACITY} people can join.</div>
         <select id="supSelect">${options}</select>
+        <div id="myNameWrap" style="display:none;">
+          <input type="text" id="myNameInput" placeholder="Your name as visitors will see it" maxlength="60">
+          <div class="sub" style="margin:-4px 0 10px;">Saved once — you won't be asked again.</div>
+        </div>
         <div class="modal-actions">
           <button class="action btn-ghost" id="mCancel">Cancel</button>
           <button class="action btn-primary" id="mConfirm">Open period</button>
         </div>
       </div>`;
     document.body.appendChild(backdrop);
+    const select = document.getElementById('supSelect');
+    const nameWrap = document.getElementById('myNameWrap');
+    const syncNameField = () => { nameWrap.style.display = (select.value === '__me__' && !myName) ? 'block' : 'none'; };
+    select.onchange = syncNameField;
+    syncNameField();
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
     document.getElementById('mCancel').onclick = () => backdrop.remove();
-    document.getElementById('mConfirm').onclick = () => {
-      const sup = document.getElementById('supSelect').value;
+    document.getElementById('mConfirm').onclick = async () => {
+      let sup = select.value;
+      if (sup === '__me__') {
+        sup = myName;
+        if (!sup) {
+          sup = document.getElementById('myNameInput').value.trim();
+          if (!sup) { showToast('Please enter your name'); return; }
+          try { await auth.currentUser.updateProfile({ displayName: sup }); }
+          catch (e) { showToast('Could not save your name — ' + e.message); return; }
+        }
+      }
       backdrop.remove();
       openCellWith(ds, pid, sup);
     };
@@ -552,20 +703,30 @@ const db = firebase.firestore();
     const period = PERIODS.find(p => p.id === pid);
     const d = new Date(ds + 'T00:00:00');
     const title = `${period.name} · ${DAY_NAMES[d.getDay()]} ${fmtDate(d)}`;
+    const key = cellKey(ds, pid);
+
+    const metaOf = (p) => {
+      const det = detailsCache[p.id] || {};
+      const inst = det.instrument !== undefined ? det.instrument : p.instrument;
+      const note = det.note !== undefined ? det.note : p.note;
+      if (!(p.id in detailsCache) && inst === undefined) return 'Loading…';
+      return [inst, note].filter(Boolean).map(escapeHtml).join(' · ') || '—';
+    };
 
     function draw() {
       const cell = getCell(ds, pid);
+      ensureDetails([...cell.pending, ...cell.confirmed].map(p => p.id), () => { if (activeManage && activeManage.key === key) draw(); });
       const pendingHtml = cell.pending.length === 0
         ? '<div class="empty-note">No pending requests.</div>'
         : `<div class="list-block">${cell.pending.map(p => `
             <div class="list-row">
               <div class="list-row-info">
                 <div class="list-row-name">${escapeHtml(p.name)}</div>
-                <div class="list-row-meta">${[p.instrument, p.note].filter(Boolean).map(escapeHtml).join(' · ') || '—'}</div>
+                <div class="list-row-meta">${metaOf(p)}</div>
               </div>
               <div class="list-row-actions">
-                <button class="mini-btn" data-pending-accept="${p.id}" title="Accept">${ICONS.check}</button>
-                <button class="mini-btn danger" data-pending-decline="${p.id}" title="Decline">${ICONS.x}</button>
+                <button class="mini-btn" data-pending-accept="${escapeHtml(p.id)}" title="Accept">${ICONS.check}</button>
+                <button class="mini-btn danger" data-pending-decline="${escapeHtml(p.id)}" title="Decline">${ICONS.x}</button>
               </div>
             </div>`).join('')}</div>`;
 
@@ -575,10 +736,10 @@ const db = firebase.firestore();
             <div class="list-row">
               <div class="list-row-info">
                 <div class="list-row-name">${escapeHtml(p.name)}</div>
-                <div class="list-row-meta">${[p.instrument, p.note].filter(Boolean).map(escapeHtml).join(' · ') || '—'}</div>
+                <div class="list-row-meta">${metaOf(p)}</div>
               </div>
               <div class="list-row-actions">
-                <button class="mini-btn danger" data-confirmed-remove="${p.id}" title="Remove">${ICONS.close}</button>
+                <button class="mini-btn danger" data-confirmed-remove="${escapeHtml(p.id)}" title="Remove">${ICONS.close}</button>
               </div>
             </div>`).join('')}</div>`;
 
@@ -594,11 +755,17 @@ const db = firebase.firestore();
           <button class="action btn-danger-ghost" id="mmClosePeriod">Close period</button>
         </div>`;
 
-      modalEl.querySelectorAll('[data-pending-accept]').forEach(b => b.onclick = async () => { await acceptPending(ds, pid, b.dataset.pendingAccept); draw(); });
-      modalEl.querySelectorAll('[data-pending-decline]').forEach(b => b.onclick = async () => { await declinePending(ds, pid, b.dataset.pendingDecline); draw(); });
-      modalEl.querySelectorAll('[data-confirmed-remove]').forEach(b => b.onclick = async () => { await removeConfirmed(ds, pid, b.dataset.confirmedRemove); draw(); });
-      document.getElementById('mmClose').onclick = () => backdrop.remove();
-      document.getElementById('mmClosePeriod').onclick = async () => { await closeCell(ds, pid); backdrop.remove(); };
+      // The live listener redraws after each change, so no manual redraw here
+      modalEl.querySelectorAll('[data-pending-accept]').forEach(b => b.onclick = () => acceptPending(ds, pid, b.dataset.pendingAccept));
+      modalEl.querySelectorAll('[data-pending-decline]').forEach(b => b.onclick = () => declinePending(ds, pid, b.dataset.pendingDecline));
+      modalEl.querySelectorAll('[data-confirmed-remove]').forEach(b => b.onclick = () => removeConfirmed(ds, pid, b.dataset.confirmedRemove));
+      document.getElementById('mmClose').onclick = close;
+      document.getElementById('mmClosePeriod').onclick = () => { close(); closeCell(ds, pid); };
+    }
+
+    function close() {
+      if (activeManage && activeManage.key === key) activeManage = null;
+      backdrop.remove();
     }
 
     const backdrop = document.createElement('div');
@@ -607,7 +774,14 @@ const db = firebase.firestore();
     modalEl.className = 'modal';
     backdrop.appendChild(modalEl);
     document.body.appendChild(backdrop);
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    activeManage = {
+      key,
+      refresh: () => {
+        if (getCell(ds, pid).status === 'closed') { close(); showToast('This period was closed'); }
+        else draw();
+      }
+    };
     draw();
   }
 
@@ -632,12 +806,15 @@ const db = firebase.firestore();
     document.body.appendChild(backdrop);
     document.getElementById('applyCancel').onclick = () => backdrop.remove();
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-    document.getElementById('applySubmit').onclick = async () => {
+    const submit = document.getElementById('applySubmit');
+    submit.onclick = async () => {
       const name = document.getElementById('applyName').value.trim();
       const instrument = document.getElementById('applyInstrument').value.trim();
       const note = document.getElementById('applyNote').value.trim();
       if (!name) { showToast('Please enter your name'); return; }
+      submit.disabled = true;
       const ok = await applyToCell(ds, pid, name, instrument, note);
+      submit.disabled = false;
       if (ok) { backdrop.remove(); showToast('Request sent!'); }
     };
   }
@@ -718,12 +895,26 @@ const db = firebase.firestore();
   }
 
   // ---------- sidebar (admin only) ----------
+  function statCard(label, value) {
+    return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${escapeHtml(value)}</div></div>`;
+  }
+
   function renderSidebar() {
     const existing = document.getElementById('adminSidebarOverlay');
+    const prevScroll = existing ? existing.querySelector('.sidebar').scrollTop : 0;
     if (existing) existing.remove();
     if (!isAdmin || !sidebarOpen) return;
 
-    const stats = computeStats();
+    let statsHtml;
+    if (stats && typeof stats === 'object') {
+      statsHtml = statCard('Most frequent visitor', stats.topVisitor)
+        + statCard('Total hours supervised', stats.supervisedHours + ' h')
+        + statCard('Total practice hours', stats.practiceHours + ' h')
+        + statCard('Most popular instrument', stats.topInstrument);
+    } else {
+      statsHtml = `<div class="empty-note">${stats === 'error' ? 'Statistics could not be loaded.' : 'Loading statistics…'}</div>`;
+    }
+
     let appsHtml = supervisorApps.length === 0
       ? '<div class="empty-note">No pending applications.</div>'
       : supervisorApps.map(a => `
@@ -754,15 +945,14 @@ const db = firebase.firestore();
       <div class="sidebar">
         <div class="sidebar-head"><h2>Admin panel</h2><button class="icon-btn" id="sbClose">${ICONS.close}</button></div>
         <div class="sec-title">Statistics</div>
-        <div class="stat-card"><div class="stat-label">Most frequent visitor</div><div class="stat-value">${escapeHtml(stats.topVisitor)}</div></div>
-        <div class="stat-card"><div class="stat-label">Total hours supervised</div><div class="stat-value">${stats.totalHours} h</div></div>
-        <div class="stat-card"><div class="stat-label">Most popular instrument</div><div class="stat-value">${escapeHtml(stats.topInstrument)}</div></div>
+        ${statsHtml}
         <div class="sec-title">Supervisor applications</div>
         ${appsHtml}
         <div class="sec-title">Approved supervisors</div>
         ${supRows}
       </div>`;
     document.body.appendChild(overlay);
+    overlay.querySelector('.sidebar').scrollTop = prevScroll;
     document.getElementById('sbClose').onclick = () => { sidebarOpen = false; renderSidebar(); };
     document.getElementById('sbOverlayBg').onclick = () => { sidebarOpen = false; renderSidebar(); };
 
@@ -814,12 +1004,9 @@ const db = firebase.firestore();
     };
   }
 
-  // ---------- live data ----------
-  cellsRef.onSnapshot(snap => {
-    cells = {};
-    snap.forEach(doc => { cells[doc.id] = doc.data(); });
-    render();
-  }, err => showToast('Sync error — ' + err.message));
+  // ---------- startup ----------
+  sidebarToggle.onclick = () => { sidebarOpen = true; loadStats(); };
+  supFab.onclick = openSupervisorAppModal;
 
   supervisorsRef.onSnapshot(snap => {
     supervisors = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -838,13 +1025,21 @@ const db = firebase.firestore();
       }, err => showToast('Could not load applications — ' + err.message));
     } else {
       supervisorApps = [];
+      sidebarOpen = false;
+      stats = null;
+      if (activeManage) { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); activeManage = null; }
     }
 
     render();
+    renderSidebar();
     if (!isAdmin) showDisclaimer();
   });
 
+  lastMinute = minuteKey();
+  subscribeCells();
   render();
+  setInterval(tick, TICK_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 })();
 </script>
 </body>
