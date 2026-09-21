@@ -4,261 +4,501 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Practice Room Schedule</title>
+<script>
+  // Resolve the theme before first paint so there's no flash of the other one
+  (function () {
+    var pref = 'auto';
+    try { pref = localStorage.getItem('pr-theme') || 'auto'; } catch (e) {}
+    var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ---------- theme tokens: "Matinee" (light) and "Late set" (dark) ---------- */
   :root {
-    --ink: #15161c;
-    --paper: #f5f5f3;
-    --panel: #ffffff;
-    --line: #e3e3df;
-    --muted: #6c6e76;
-    --indigo: #4338ca;
-    --indigo-ink: #ffffff;
-    --teal: #0d8f83;
-    --teal-bg: #e6f5f3;
-    --amber: #b4530a;
-    --amber-bg: #fbf1e5;
-    --brick: #b3261e;
-    --brick-bg: #fceeed;
-    --focus: #4338ca;
-    --radius: 14px;
-    --radius-sm: 9px;
-    --font-display: 'Space Grotesk', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    color-scheme: light;
+    --bg: #F1E6D1;
+    --art: url('img/bg-light.svg');
+    --art-phone: url('img/bg-phone.svg');
+    --ink: #1C2230;
+    --ink-2: #434856;
+    --muted: #5A5E6B;
+    --glass-rgb: 251, 246, 236;
+    --line: rgba(28, 34, 48, 0.14);
+    --line-strong: rgba(28, 34, 48, 0.32);
+    --input-line: rgba(28, 34, 48, 0.28);
+    --bar-off: rgba(28, 34, 48, 0.16);
+    --chip: rgba(28, 34, 48, 0.08);
+    --shadow: 0 10px 24px -18px rgba(28, 34, 48, 0.6);
+    --accent: #B23E26;
+    --gold: #D99A2B;
+    --gold-ink: #1C2230;
+    --apply-border: #1C2230;
+    --brass: #B07A1C;
+    --teal: #1F5C58;
+    --teal-ink: #1B5551;
+    --teal-soft: rgba(31, 92, 88, 0.13);
+    --brick: #C4462C;
+    --brick-ink: #A0371F;
+    --brick-soft: rgba(196, 70, 44, 0.14);
+    --brick-line: rgba(160, 55, 31, 0.45);
+    --req-rgb: 250, 229, 184;
+    --req-line: rgba(158, 106, 23, 0.55);
+    --req-ink: #714A0C;
+    --req-soft: rgba(217, 154, 43, 0.26);
+    --inv-bg: #1C2230;
+    --inv-ink: #FBF5EA;
+    --inv-accent: #E3A63A;
+    --mark-icon: #D99A2B;
+    --primary-bg: #1C2230;
+    --primary-ink: #FBF5EA;
+    --modal-bg: #FBF5EA;
+    --input-bg: #FFFFFF;
+    --scrim: rgba(22, 26, 36, 0.52);
+    --glass: 0.74;
+    --glass-strong: 0.88;
+    --glass-closed: 0.37;
+    --blur: 7px;
+    --display: 'Fraunces', Georgia, serif;
+    --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --numeral: 'Bebas Neue', 'Oswald', Impact, sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink: #f1f1ef;
-      --paper: #101114;
-      --panel: #191a1f;
-      --line: #2b2c33;
-      --muted: #9799a3;
-      --indigo: #8b85f4;
-      --indigo-ink: #101114;
-      --teal: #3fc2b3;
-      --teal-bg: #10302c;
-      --amber: #e2a25a;
-      --amber-bg: #332411;
-      --brick: #f08a83;
-      --brick-bg: #33191a;
-    }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111723;
+    --art: url('img/bg-dark.svg');
+    --art-phone: url('img/bg-dark.svg');
+    --ink: #EFE5D1;
+    --ink-2: #D3CAB8;
+    --muted: #AEA697;
+    --glass-rgb: 17, 23, 35;
+    --line: rgba(239, 229, 209, 0.15);
+    --line-strong: rgba(239, 229, 209, 0.3);
+    --input-line: rgba(239, 229, 209, 0.3);
+    --bar-off: rgba(239, 229, 209, 0.2);
+    --chip: rgba(239, 229, 209, 0.09);
+    --shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.85);
+    --accent: #EE8B6B;
+    --gold: #E0A93B;
+    --gold-ink: #111723;
+    --apply-border: #E0A93B;
+    --brass: #E0A93B;
+    --teal: #8AD3C6;
+    --teal-ink: #8AD3C6;
+    --teal-soft: rgba(138, 211, 198, 0.15);
+    --brick: #E66D4F;
+    --brick-ink: #F4987D;
+    --brick-soft: rgba(201, 85, 58, 0.24);
+    --brick-line: rgba(244, 152, 125, 0.5);
+    --req-rgb: 56, 43, 20;
+    --req-line: rgba(224, 169, 59, 0.55);
+    --req-ink: #F5C96E;
+    --req-soft: rgba(224, 169, 59, 0.2);
+    --inv-bg: #EFE5D1;
+    --inv-ink: #111723;
+    --inv-accent: #B23E26;
+    --mark-icon: #B23E26;
+    --primary-bg: #E0A93B;
+    --primary-ink: #111723;
+    --modal-bg: #171E2C;
+    --input-bg: #0E131D;
+    --scrim: rgba(5, 7, 12, 0.62);
   }
+  @media (prefers-reduced-transparency: reduce) {
+    :root { --glass: 0.96; --glass-strong: 0.97; --glass-closed: 0.9; --blur: 0px; }
+  }
+
+  /* ---------- base ---------- */
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.45;
-    min-height: 100vh;
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font-family: var(--body); font-size: 15px; line-height: 1.45;
   }
-  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1;
+    background: var(--bg) var(--art) center top / cover no-repeat;
+  }
+  button, input, textarea, select { font-family: inherit; }
+  button { cursor: pointer; }
+  button:disabled { opacity: 0.6; cursor: default; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  a { color: var(--ink); }
+  a:hover { color: var(--accent); }
+  .glass { background: rgba(var(--glass-rgb), var(--glass)); }
+  .glass-strong { background: rgba(var(--glass-rgb), var(--glass-strong)); }
+  .blur { -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); }
+  .ico { width: 18px; height: 18px; flex-shrink: 0; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   }
+  html { scroll-behavior: smooth; }
 
-  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 18px 100px; }
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 0 64px 44px; display: flex; flex-direction: column; min-height: 100vh; }
 
-  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 6px; }
-  .brand { display: flex; align-items: center; gap: 11px; }
-  .mark {
-    width: 38px; height: 38px; border-radius: 10px; background: var(--ink); color: var(--paper);
-    display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
-  }
-  .mark svg { width: 20px; height: 20px; }
-  h1 { font-family: var(--font-display); font-size: 1.32rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); font-size: 0.87rem; margin-top: 1px; }
-
-  .icon-btn {
-    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
-    background: var(--panel); color: var(--ink); display: flex; align-items: center; justify-content: center;
-    cursor: pointer; padding: 0; transition: border-color 0.15s, transform 0.1s;
-  }
-  .icon-btn:hover { border-color: var(--ink); }
-  .icon-btn:active { transform: scale(0.94); }
-  .icon-btn svg { width: 18px; height: 18px; }
-
-  .status-bar {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    margin: 18px 0 22px; padding: 10px 14px; border-radius: var(--radius-sm);
-    background: var(--panel); border: 1px solid var(--line); font-size: 0.83rem; color: var(--muted);
-  }
-  .status-bar .who { display: flex; align-items: center; gap: 7px; color: var(--ink); font-weight: 500; }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
-  .status-dot.on { background: var(--teal); }
-  .status-bar button.link {
-    background: none; border: none; color: var(--indigo); font-family: inherit; font-size: 0.83rem;
-    font-weight: 600; cursor: pointer; padding: 0; width: auto;
-  }
-
-  .days-scroll { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 12px; scroll-snap-type: x proximity; }
-  .day-col { flex: 0 0 auto; width: 30%; min-width: 152px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; }
-  @media (max-width: 480px) { .day-col { width: 80%; } }
-
-  .day-head { padding: 2px 2px 12px; margin-bottom: 2px; border-bottom: 1px solid var(--line); }
-  .day-head.today { border-bottom: 2px solid var(--indigo); }
-  .day-name { font-family: var(--font-display); font-size: 0.98rem; font-weight: 600; }
-  .day-date { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
-  .day-head.today .day-name::after {
-    content: '· today'; font-family: var(--font-body); font-weight: 500; font-size: 0.72rem; color: var(--indigo); margin-left: 6px;
-  }
-
-  .slot {
-    border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 12px; background: var(--panel);
-    transition: border-color 0.15s;
-  }
-  .slot.state-open { border-color: color-mix(in srgb, var(--teal) 55%, var(--line)); }
-  .slot.state-full { border-color: var(--line); background: color-mix(in srgb, var(--muted) 6%, var(--panel)); }
-  .period-name { font-family: var(--font-display); font-weight: 600; font-size: 0.9rem; }
-  .period-time { font-size: 0.73rem; color: var(--muted); margin-top: 1px; }
-
-  .pill {
-    display: inline-flex; align-items: center; gap: 5px; font-size: 0.71rem; font-weight: 600;
-    padding: 3px 8px; border-radius: 999px; margin-top: 8px;
-  }
-  .pill-closed { color: var(--muted); background: color-mix(in srgb, var(--muted) 12%, transparent); }
-  .pill-open { color: var(--teal); background: var(--teal-bg); }
-  .pill-pending { color: var(--amber); background: var(--amber-bg); }
-  .pill-full { color: var(--brick); background: var(--brick-bg); }
-
-  .slot-sup { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
-
-  button.action {
-    font-family: var(--font-body); cursor: pointer; border: none; border-radius: var(--radius-sm);
-    padding: 8px 10px; font-size: 0.78rem; font-weight: 600; width: 100%; margin-top: 9px;
+  /* ---------- buttons ---------- */
+  .btn {
+    flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 46px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line-strong);
+    background: rgba(var(--glass-rgb), var(--glass-strong)); color: var(--ink);
+    font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap;
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
     transition: filter 0.12s, transform 0.08s;
   }
-  button.action:active { transform: scale(0.98); }
-  button.action:disabled { opacity: 0.6; cursor: default; }
-  .btn-primary { background: var(--indigo); color: var(--indigo-ink); }
-  .btn-primary:hover { filter: brightness(1.08); }
-  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-  .btn-ghost:hover { border-color: var(--ink); }
-  .btn-danger-ghost { background: transparent; border: 1px solid var(--brick); color: var(--brick); }
-  .btn-row { display: flex; gap: 6px; margin-top: 9px; }
-  .btn-row .action { margin-top: 0; }
+  .btn:hover { filter: brightness(1.06); color: var(--ink); }
+  .btn:active { transform: scale(0.97); }
+  .btn.sm { height: 44px; }
+  .btn.xs { height: 34px; padding: 0 14px; font-size: 13.5px; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .btn.primary { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-ink); font-weight: 700; }
+  .btn.primary:hover { color: var(--primary-ink); }
+  .btn.inverse { background: var(--inv-bg); border-color: var(--inv-bg); color: var(--inv-ink); }
+  .btn.inverse:hover { color: var(--inv-ink); }
+  .btn.ghost { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .btn.danger { background: transparent; border-color: var(--brick-line); color: var(--brick-ink); font-weight: 700; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .btn.apply { height: 44px; padding: 0 16px 0 18px; border-color: var(--apply-border); background: var(--gold); color: var(--gold-ink); font-weight: 700; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .btn.apply:hover { color: var(--gold-ink); }
+  .btn .ico { width: 16px; height: 16px; }
+  .icon-btn {
+    width: 44px; height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 12px; border: 1.5px solid var(--line-strong); background: transparent; color: var(--ink); padding: 0;
+  }
+  .icon-btn.solid { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-ink); }
+  .icon-btn.danger { border-color: var(--brick-line); color: var(--brick-ink); }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px;
+    border-radius: 999px; background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 700;
+  }
 
+  /* ---------- nav ---------- */
+  nav.top { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 10px 0; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--inv-bg); color: var(--mark-icon);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .brand-mark .ico { width: 20px; height: 20px; }
+  .brand-title { font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.15; }
+  .brand-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .who {
+    display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 5px 0 16px; border-radius: 999px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+    font-size: 14px; font-weight: 500; color: var(--ink-2);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  .dot.brass { background: var(--brass); }
+
+  /* theme switch */
+  .theme-seg {
+    display: inline-flex; gap: 2px; padding: 4px; height: 46px; border-radius: 999px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+  }
+  .theme-seg button {
+    width: 36px; height: 36px; border-radius: 999px; border: 0; background: transparent; color: var(--ink-2);
+    display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .theme-seg button[aria-pressed="true"] { background: var(--inv-bg); color: var(--inv-ink); }
+  .theme-seg .ico { width: 17px; height: 17px; }
+  .theme-cycle { display: none; }
+
+  /* ---------- hero ---------- */
+  .hero { display: flex; flex-direction: column; gap: 18px; max-width: 660px; padding-top: 16px; }
+  .tag {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; min-height: 32px; padding: 4px 14px;
+    border-radius: 999px; background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+    font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
+  }
+  .tag .dot { width: 7px; height: 7px; background: var(--gold); }
+  h1.headline {
+    margin: 0; font-family: var(--display); font-size: clamp(40px, 6vw, 70px); line-height: 1.0; font-weight: 600; letter-spacing: -0.025em;
+  }
+  h1.headline em { font-style: italic; font-weight: 500; color: var(--accent); }
+  .lede { margin: 0; max-width: 560px; font-size: 18px; line-height: 1.55; color: var(--ink-2); }
+  .now {
+    align-self: flex-start; display: flex; align-items: center; gap: 16px; padding: 12px 20px 12px 12px; border-radius: 18px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line); box-shadow: var(--shadow);
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); max-width: 100%;
+  }
+  .now-icon {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--inv-bg);
+    display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding-bottom: 12px;
+  }
+  .now-icon span { width: 4px; border-radius: 2px; background: var(--mark-icon); }
+  .now-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+  .now-title { font-size: 16px; font-weight: 600; }
+  .now-title span { font-weight: 500; color: var(--muted); }
+  .now-meter { display: flex; flex-direction: column; gap: 7px; width: 132px; flex-shrink: 0; }
+  .now-meter .left { font-size: 12.5px; font-weight: 600; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+  .track { height: 6px; border-radius: 3px; background: var(--bar-off); overflow: hidden; }
+  .track div { height: 6px; border-radius: 3px; background: var(--gold); }
+
+  /* ---------- setlist ---------- */
+  .setlist { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; }
+  .setlist-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap;
+    min-height: 64px; padding: 12px 20px 12px 24px; border-radius: 18px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+  }
+  .setlist-title { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; }
+  .setlist-title h2 { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  .setlist-title span { font-size: 15px; color: var(--muted); }
+  .legend { display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .counters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .grid { display: grid; grid-template-columns: 188px repeat(3, minmax(0, 1fr)); grid-auto-rows: 70px; grid-template-rows: 60px; column-gap: 12px; row-gap: 10px; }
+  .dhead {
+    height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 18px; border-radius: 14px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+  }
+  .dhead .dname { font-family: var(--numeral); font-size: 34px; line-height: 1; letter-spacing: 0.04em; }
+  .dhead .ddate { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+  .dhead.today { background: var(--inv-bg); border-color: var(--inv-bg); color: var(--inv-ink); }
+  .dhead.today .ddate { color: var(--inv-ink); }
+  .today-tag {
+    margin-left: auto; display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: 999px;
+    background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .prow {
+    display: flex; align-items: center; gap: 12px; padding: 0 14px; border-radius: 14px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+  }
+  .pcode { width: 36px; flex-shrink: 0; font-family: var(--numeral); font-size: 30px; line-height: 1; letter-spacing: 0.02em; color: var(--accent); }
+  .pname { font-family: var(--display); font-size: 17px; font-weight: 600; line-height: 1.2; }
+  .pname.soft { font-style: italic; }
+  .ptime { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .cell {
+    min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-radius: 14px;
+    background: rgba(var(--glass-rgb), var(--glass)); border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .cell.closed { background: rgba(var(--glass-rgb), var(--glass-closed)); border: 1px dashed var(--line-strong); box-shadow: none; }
+  .cell.req { background: rgba(var(--req-rgb), var(--glass-strong)); border-color: var(--req-line); }
+  .cell-body { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+  .cell-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+  .meta { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta b { font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+    color: var(--muted); background: var(--chip);
+  }
+  .pill.lg { height: 28px; font-size: 12px; }
+  .pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .pill .ico { width: 13px; height: 13px; }
+  .pill.open { color: var(--teal-ink); background: var(--teal-soft); }
+  .pill.full { color: var(--brick-ink); background: var(--brick-soft); }
+  .pill.req { color: var(--req-ink); background: var(--req-soft); }
+  .closed-chip {
+    display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); color: var(--muted);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .closed-chip .ico { width: 13px; height: 13px; }
+  .bars { display: inline-flex; gap: 3px; }
+  .bars span { width: 5px; height: 14px; border-radius: 2px; background: var(--bar-off); }
+  .bars.open span.on { background: var(--teal); }
+  .bars.req span.on { background: var(--brass); }
+  .bars.full span.on { background: var(--brick); }
+
+  /* phone list (shown under 900px instead of the grid) */
+  .setlist .phone-only { display: none; }
+  .day-tabs {
+    display: flex; gap: 4px; padding: 4px; border-radius: 16px;
+    background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+  }
+  .day-tabs button {
+    flex: 1 1 0; height: 44px; display: flex; align-items: baseline; justify-content: center; gap: 6px;
+    border: 0; border-radius: 12px; background: transparent; color: var(--ink);
+  }
+  .day-tabs button[aria-pressed="true"] { background: var(--inv-bg); color: var(--inv-ink); }
+  .day-tabs .dname { font-family: var(--numeral); font-size: 22px; line-height: 44px; letter-spacing: 0.04em; }
+  .day-tabs .ddate { font-size: 13px; font-weight: 600; opacity: 0.85; }
+  .plist { display: flex; flex-direction: column; gap: 8px; }
+  .plist .cell { min-height: 80px; padding: 10px 10px 10px 14px; }
+  .plist .pcode { width: 34px; font-size: 28px; }
+  .plist .ptitle { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .plist .ptitle .pname { font-size: 17px; color: var(--ink); }
+
+  /* ---------- house rules ---------- */
+  .rules {
+    margin-top: 40px; display: grid; grid-template-columns: 200px repeat(3, minmax(0, 1fr)); gap: 24px 32px; align-items: center;
+    padding: 26px 32px; border-radius: 20px; background: var(--inv-bg); color: var(--inv-ink); scroll-margin-top: 24px;
+  }
+  .rules .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--inv-accent); }
+  .rules h2 { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 500; font-style: italic; }
+  .rule { display: flex; align-items: flex-start; gap: 14px; }
+  .rule .num { font-family: var(--numeral); font-size: 40px; line-height: 0.9; color: var(--inv-accent); }
+  .rule p { margin: 0; font-size: 15px; line-height: 1.5; }
+
+  /* ---------- modals ---------- */
   .modal-backdrop {
-    position: fixed; inset: 0; background: rgba(15, 16, 20, 0.5); backdrop-filter: blur(1px);
-    display: flex; align-items: flex-end; justify-content: center; z-index: 30;
-    animation: fadeIn 0.15s ease-out;
+    position: fixed; inset: 0; z-index: 30; display: flex; justify-content: center; align-items: flex-start;
+    padding: 12vh 16px 24px; overflow-y: auto; background: var(--scrim);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: fadeIn 0.15s ease-out;
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @media (min-width: 520px) { .modal-backdrop { align-items: center; } }
   .modal {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 18px 18px 0 0;
-    padding: 22px; width: 100%; max-width: 440px; max-height: 86vh; overflow-y: auto;
-    animation: slideUp 0.18s ease-out;
+    width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 18px; padding: 28px; border-radius: 22px;
+    background: var(--modal-bg); border: 1px solid var(--line); box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.55); color: var(--ink);
+    animation: rise 0.18s ease-out;
   }
-  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  @media (min-width: 520px) { .modal { border-radius: 16px; } }
-  .modal h3 { font-family: var(--font-display); margin: 0 0 3px; font-size: 1.08rem; font-weight: 600; }
-  .modal .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
-  .modal input, .modal textarea, .modal select {
-    width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line);
-    background: var(--paper); color: var(--ink); font-family: inherit; font-size: 0.9rem; margin-bottom: 10px;
+  .modal.wide { max-width: 660px; gap: 20px; border-radius: 24px; }
+  @keyframes rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .modal-head { display: flex; flex-direction: column; gap: 6px; }
+  .modal-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .eyebrow-accent { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+  .modal h3 { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
+  .modal.wide h3 { font-size: 32px; }
+  .modal .sub { font-size: 14px; color: var(--muted); }
+  .field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .field .opt { font-weight: 500; color: var(--muted); }
+  .field input, .field textarea, .field select, .sup-switch select {
+    height: 46px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--input-line);
+    background: var(--input-bg); color: var(--ink); font-size: 15px; font-weight: 400;
   }
-  .modal textarea { resize: vertical; min-height: 58px; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
-  .modal-actions .action { margin-top: 0; }
-  .error-text { color: var(--brick); font-size: 0.79rem; margin: -3px 0 10px; }
+  .field textarea { height: auto; padding: 12px 14px; resize: none; }
+  .note {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--chip);
+    font-size: 13px; line-height: 1.45; color: var(--ink-2);
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+  .modal-actions.split { justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--line); }
+  .error-text { color: var(--brick-ink); font-size: 13px; margin-top: -8px; }
+  .modal ol.house { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+  .modal ol.house li { display: flex; gap: 14px; align-items: flex-start; font-size: 15px; line-height: 1.5; }
+  .modal ol.house .num { font-family: var(--numeral); font-size: 32px; line-height: 0.9; color: var(--accent); }
 
-  ul.disclaimer { padding-left: 0; list-style: none; margin: 0 0 18px; display: flex; flex-direction: column; gap: 10px; }
-  ul.disclaimer li { font-size: 0.86rem; line-height: 1.5; padding-left: 26px; position: relative; }
-  ul.disclaimer li::before {
-    content: attr(data-n); position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 5px;
-    background: var(--indigo); color: var(--indigo-ink); font-size: 0.68rem; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
+  /* manage */
+  .sup-switch {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap;
+    padding: 12px 14px 12px 16px; border-radius: 14px; background: var(--chip); font-size: 14px; font-weight: 600; color: var(--ink-2);
   }
-
-  .fab {
-    position: fixed; right: 18px; bottom: 22px; width: 50px; height: 50px; border-radius: 50%;
-    background: var(--ink); color: var(--paper); display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border: none; box-shadow: 0 6px 18px rgba(0,0,0,0.2); z-index: 15; transition: transform 0.12s;
+  .sup-switch select { height: 44px; min-width: 240px; padding: 0 12px; max-width: 100%; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .list-head h4 { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+  .list-head span { font-size: 13px; color: var(--muted); }
+  .waiting { display: flex; flex-direction: column; gap: 8px; }
+  .wait-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 14px; border-radius: 14px;
+    background: var(--input-bg); border: 1px solid var(--line);
   }
-  .fab:active { transform: scale(0.93); }
-  .fab svg { width: 22px; height: 22px; }
+  .wait-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .wait-name { font-size: 15px; font-weight: 700; }
+  .wait-name span { font-weight: 500; color: var(--muted); }
+  .wait-reason { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+  .wait-reason.none { color: var(--muted); }
+  .in-room { display: flex; flex-wrap: wrap; gap: 8px; }
+  .in-room > span {
+    display: inline-flex; align-items: center; gap: 2px; height: 44px; padding: 0 0 0 14px; border-radius: 999px;
+    background: var(--teal-soft); font-size: 14px; font-weight: 600;
+  }
+  .in-room button {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%;
+    background: transparent; color: var(--muted); padding: 0;
+  }
+  .in-room .ico { width: 16px; height: 16px; }
+  .empty-note { font-size: 13.5px; color: var(--muted); }
 
-  .sidebar-overlay { position: fixed; inset: 0; background: rgba(15,16,20,0.45); z-index: 25; animation: fadeIn 0.15s ease-out; }
+  /* ---------- admin side panel (stats + supervisors) ---------- */
+  .sidebar-overlay { position: fixed; inset: 0; z-index: 25; background: var(--scrim); animation: fadeIn 0.15s ease-out; }
   .sidebar {
-    position: fixed; top: 0; right: 0; bottom: 0; width: 88%; max-width: 380px; background: var(--panel);
-    border-left: 1px solid var(--line); z-index: 26; padding: 20px 18px 34px; overflow-y: auto;
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 26; width: 92%; max-width: 420px; overflow-y: auto;
+    background: var(--modal-bg); border-left: 1px solid var(--line); padding: 24px 22px 36px; color: var(--ink);
     animation: slideIn 0.18s ease-out;
   }
-  @keyframes slideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes slideIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
   .sidebar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-  .sidebar-head h2 { font-family: var(--font-display); font-size: 1.12rem; margin: 0; font-weight: 600; }
-  .sec-title { font-size: 0.74rem; font-weight: 700; color: var(--muted); margin: 22px 0 9px; }
+  .sidebar-head h2 { margin: 0; font-family: var(--display); font-size: 26px; font-weight: 600; }
+  .sec-title { font-size: 12.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); margin: 24px 0 10px; }
   .sec-title:first-of-type { margin-top: 0; }
   .stat-card {
-    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm);
-    padding: 11px 13px; margin-bottom: 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px 14px; margin-bottom: 8px;
+    border-radius: 14px; background: var(--chip);
   }
-  .stat-label { font-size: 0.78rem; color: var(--muted); }
-  .stat-value { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; text-align: right; }
-  .app-item { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 13px; margin-bottom: 8px; }
-  .app-name { font-weight: 600; font-size: 0.87rem; }
-  .app-msg { font-size: 0.79rem; color: var(--muted); margin-top: 3px; }
-  .empty-note { font-size: 0.8rem; color: var(--muted); padding: 5px 0 2px; }
-  .sup-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    padding: 9px 4px; border-bottom: 1px solid var(--line); font-size: 0.85rem;
-  }
-  .sup-row:last-child { border-bottom: none; }
-  .sup-actions { display: flex; gap: 4px; flex: 0 0 auto; }
-  .mini-btn {
-    width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel);
-    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; color: var(--ink);
-  }
-  .mini-btn:hover { border-color: var(--ink); }
-  .mini-btn svg { width: 13px; height: 13px; }
-  .mini-btn.danger { color: var(--brick); }
+  .stat-label { font-size: 13px; color: var(--muted); }
+  .stat-value { font-family: var(--display); font-size: 19px; font-weight: 600; text-align: right; }
+  .app-item { padding: 14px; margin-bottom: 8px; border-radius: 14px; background: var(--input-bg); border: 1px solid var(--line); }
+  .app-name { font-weight: 700; font-size: 15px; }
+  .app-msg { font-size: 13px; color: var(--ink-2); margin-top: 3px; overflow-wrap: anywhere; }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+  .sup-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 600; }
+  .sup-row:last-child { border-bottom: 0; }
+  .sup-actions { display: flex; gap: 6px; }
 
-  .list-block { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 4px; }
-  .list-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
-  .list-row:last-child { border-bottom: none; }
-  .list-row-info { min-width: 0; }
-  .list-row-name { font-size: 0.86rem; font-weight: 600; }
-  .list-row-meta { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
-  .list-row-actions { display: flex; gap: 5px; flex: 0 0 auto; }
-
+  /* ---------- toast ---------- */
   .toast {
-    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper);
-    padding: 10px 18px; border-radius: 999px; font-size: 0.84rem; opacity: 0; transition: opacity 0.25s;
-    pointer-events: none; z-index: 40; max-width: 88vw; text-align: center;
+    position: fixed; top: 96px; left: 50%; transform: translate(-50%, -8px); z-index: 40; max-width: min(620px, 92vw);
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px 12px 18px; border-radius: 999px;
+    background: var(--inv-bg); color: var(--inv-ink); font-size: 14.5px; font-weight: 600;
+    box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
   }
-  .toast.show { opacity: 1; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast .ico { color: var(--mark-icon); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 1200px) {
+    .wrap { padding: 0 32px 40px; }
+    .grid { grid-template-columns: 150px repeat(3, minmax(0, 1fr)); column-gap: 10px; }
+    .cell .btn.apply .lbl-long { display: none; }
+    .rules { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 899px) {
+    body::before { background-image: var(--art-phone); }
+    .wrap { padding: 0 16px 32px; }
+    nav.top { min-height: 72px; }
+    .brand-eyebrow { display: none; }
+    .brand-title { font-size: 17px; }
+    .brand-mark { width: 38px; height: 38px; }
+    .btn .lbl, .who .lbl { display: none; }
+    .nav-actions > .btn { width: 44px; height: 44px; padding: 0; }
+    .nav-actions > .btn.has-lbl-sm { width: auto; padding: 0 14px; }
+    .nav-actions { gap: 8px; }
+    .who { height: 44px; padding: 0 4px 0 12px; }
+    .theme-seg { display: none; }
+    nav.top {
+      margin-top: 12px; padding: 8px 8px 8px 10px; border-radius: 20px;
+      background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
+      -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur));
+    }
+    .who { background: transparent; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; }
+    .who .btn.xs { height: 44px; }
+    .theme-cycle { background: rgba(var(--glass-rgb), var(--glass-strong)); }
+    .plist .cell.closed { background: rgba(var(--glass-rgb), var(--glass)); }
+    .theme-cycle { display: inline-flex; }
+    .hero { padding-top: 24px; gap: 14px; }
+    .lede { font-size: 16px; }
+    .now { width: 100%; }
+    .now-meter { width: 96px; }
+    .setlist { margin-top: 24px; }
+    .setlist-head { padding: 14px 16px; }
+    .setlist-title h2 { font-size: 24px; }
+    .grid { display: none; }
+    .setlist .phone-only { display: flex; }
+    .rules { grid-template-columns: 1fr; padding: 22px; }
+    .modal-backdrop { align-items: flex-end; padding: 16px 0 0; }
+    .modal, .modal.wide { max-width: none; border-radius: 22px 22px 0 0; padding: 22px 18px 28px; }
+    .toast { top: auto; bottom: 20px; border-radius: 18px; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="brand">
-      <div class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h3"></path></svg>
-      </div>
-      <div>
-        <h1>Practice Room Schedule</h1>
-        <div class="sub" id="subline">Loading…</div>
-      </div>
-    </div>
-    <button class="icon-btn" id="sidebarToggle" style="display:none;" title="Admin panel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M12 19V5M20 19v-6"></path></svg>
-    </button>
-  </header>
-
-  <div class="status-bar" id="modeBanner" style="display:none;"></div>
-  <div id="app"></div>
+  <nav class="top" id="nav" aria-label="Site"></nav>
+  <main id="app"></main>
 </div>
-
-<button class="fab" id="supFab" style="display:none;" title="Apply to be a supervisor">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 2-3 4"></path><path d="M12 17h.01"></path></svg>
-</button>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ======================== FIREBASE (free tier) ======================== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -292,20 +532,26 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
 <script>
 (function() {
   const PERIODS = [
-    { id: 'p1', name: 'Period 1', time: '9:30–10:25',  end: '10:25', minutes: 55 },
-    { id: 'p2', name: 'Period 2', time: '10:25–11:20', end: '11:20', minutes: 55 },
-    { id: 'br', name: 'Break',    time: '11:20–11:40', end: '11:40', minutes: 20 },
-    { id: 'p3', name: 'Period 3', time: '11:40–12:40', end: '12:40', minutes: 60 },
-    { id: 'p4', name: 'Period 4', time: '12:40–13:40', end: '13:40', minutes: 60 },
-    { id: 'l1', name: 'Lunch 1',  time: '13:40–14:10', end: '14:10', minutes: 30 },
-    { id: 'l2', name: 'Lunch 2',  time: '14:10–14:40', end: '14:40', minutes: 30 },
-    { id: 'p5', name: 'Period 5', time: '14:40–15:35', end: '15:35', minutes: 55 },
-    { id: 'p6', name: 'Period 6', time: '15:35–16:30', end: '16:30', minutes: 55 }
+    { id: 'p1', code: 'P1', name: 'Period 1', time: '9:30–10:25',  start: '09:30', end: '10:25', minutes: 55 },
+    { id: 'p2', code: 'P2', name: 'Period 2', time: '10:25–11:20', start: '10:25', end: '11:20', minutes: 55 },
+    { id: 'br', code: 'BR', name: 'Break',    time: '11:20–11:40', start: '11:20', end: '11:40', minutes: 20, soft: true },
+    { id: 'p3', code: 'P3', name: 'Period 3', time: '11:40–12:40', start: '11:40', end: '12:40', minutes: 60 },
+    { id: 'p4', code: 'P4', name: 'Period 4', time: '12:40–13:40', start: '12:40', end: '13:40', minutes: 60 },
+    { id: 'l1', code: 'L1', name: 'Lunch 1',  time: '13:40–14:10', start: '13:40', end: '14:10', minutes: 30, soft: true },
+    { id: 'l2', code: 'L2', name: 'Lunch 2',  time: '14:10–14:40', start: '14:10', end: '14:40', minutes: 30, soft: true },
+    { id: 'p5', code: 'P5', name: 'Period 5', time: '14:40–15:35', start: '14:40', end: '15:35', minutes: 55 },
+    { id: 'p6', code: 'P6', name: 'Period 6', time: '15:35–16:30', start: '15:35', end: '16:30', minutes: 55 }
   ];
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const DAYS_SHOWN = 3;
   const CAPACITY = 10;
   const TICK_MS = 30000;
+  const HOUSE_RULES = [
+    'Doors lock 5 minutes into each period — after that, no one gets let in.',
+    'Rooms are limited, so it’s first-come, first-served.',
+    'Everyone inside needs to be doing something music-related to keep their spot.'
+  ];
 
   let cells = {};            // id -> raw doc data for the visible days
   let supervisors = [];      // [{id, name}]
@@ -317,39 +563,62 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   let unsubCells = null;
   let windowKey = '';        // visible dates the cells listener covers
   let lastMinute = '';
-  let activeManage = null;   // {key, draw, close} while the Manage modal is open
+  let activeManage = null;   // {key, refresh} while the Manage window is open
   let stats = null;          // null = not loaded, 'loading', 'error', or the computed stats
+  let phoneDay = 0;          // which visible day the phone list shows
+  let toastTimer = null;
   const detailsCache = {};   // requestId -> {instrument, note} (admin only)
   const detailsLoading = new Set();
 
+  const nav = document.getElementById('nav');
   const app = document.getElementById('app');
-  const subline = document.getElementById('subline');
-  const modeBanner = document.getElementById('modeBanner');
-  const sidebarToggle = document.getElementById('sidebarToggle');
-  const supFab = document.getElementById('supFab');
 
-  const ICONS = {
-    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>',
-    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>',
-    pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
-    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"></path></svg>',
-    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>'
+  const ICON_PATHS = {
+    note: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+    rules: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6"/><path d="M9 14h6"/><path d="M9 18h3"/>',
+    supervisor: '<circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6s7 2.5 7 6"/><path d="M19 8v6"/><path d="M16 11h6"/>',
+    arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
+    chart: '<path d="M4 19V10M12 19V5M20 19v-6"/>',
+    pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/>'
   };
+  function icon(name, extraClass) {
+    return `<svg class="ico${extraClass ? ' ' + extraClass : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name]}</svg>`;
+  }
 
+  // ---------- small helpers ----------
+  function store(key, value) {
+    try {
+      if (value === undefined) return JSON.parse(localStorage.getItem(key));
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) { return undefined; }
+  }
   function showToast(msg) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
+    t.innerHTML = icon('note') + '<span></span>';
+    t.querySelector('span').textContent = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
   }
   function escapeHtml(s) {
     if (!s) return '';
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function dateStr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-  function fmtDate(d) { return `${d.getMonth() + 1}/${d.getDate()}`; }
+  function monthDay(d) { return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+  function longDay(d) { return `${DAY_NAMES[d.getDay()]} ${monthDay(d)}`; }
   function isSameDate(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
   function minuteKey() { const d = new Date(); return dateStr(d) + ' ' + d.getHours() + ':' + d.getMinutes(); }
+  function at(ds, hhmm) { return new Date(ds + 'T' + hhmm + ':00'); }
 
   // Skip weekends — only the next DAYS_SHOWN weekdays, starting today
   function getVisibleDays() {
@@ -363,9 +632,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     return days;
   }
 
-  function hasEnded(ds, period) {
-    return new Date(ds + 'T' + period.end + ':00') <= new Date();
-  }
+  function hasEnded(ds, period) { return at(ds, period.end) <= new Date(); }
 
   function cellKey(ds, pid) { return ds + '_' + pid; }
 
@@ -381,6 +648,54 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     };
   }
   function getCell(ds, pid) { return normalizeCell(cells[cellKey(ds, pid)]); }
+
+  // ---------- theme ----------
+  const darkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  function themePref() { const p = store('pr-theme'); return p === 'light' || p === 'dark' ? p : 'auto'; }
+  function applyTheme() {
+    const pref = themePref();
+    const dark = pref === 'dark' || (pref === 'auto' && darkQuery && darkQuery.matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    // Update the controls in place so nothing else re-renders (open forms keep their input)
+    nav.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === pref)));
+    const cycle = nav.querySelector('.theme-cycle');
+    if (cycle) {
+      cycle.innerHTML = icon(pref === 'light' ? 'sun' : pref === 'dark' ? 'moon' : 'auto');
+      cycle.setAttribute('aria-label', `Theme: ${pref === 'auto' ? 'auto (follows device)' : pref}. Change theme`);
+    }
+  }
+  function setTheme(pref) {
+    store('pr-theme', pref);
+    // Storage may be blocked; the in-memory choice still applies for this page view
+    if (themePref() !== pref) document.documentElement.setAttribute('data-theme', pref === 'dark' || (pref === 'auto' && darkQuery && darkQuery.matches) ? 'dark' : 'light');
+    else applyTheme();
+    nav.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === pref)));
+  }
+  if (darkQuery) {
+    const onChange = () => { if (themePref() === 'auto') applyTheme(); };
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onChange); else darkQuery.addListener(onChange);
+  }
+
+  // ---------- this browser's own requests (shown as "Requested") ----------
+  function myRequests() { const r = store('pr-requests'); return r && typeof r === 'object' ? r : {}; }
+  function isMine(cell, key) {
+    const id = myRequests()[key];
+    return !!id && cell.pending.some(p => p.id === id);
+  }
+  // Forget requests that are no longer pending or no longer on screen
+  function pruneMyRequests() {
+    const mine = myRequests();
+    const visible = new Set(getVisibleDays().map(dateStr));
+    let changed = false;
+    Object.keys(mine).forEach(key => {
+      const ds = key.split('_')[0];
+      if (!visible.has(ds)) { delete mine[key]; changed = true; return; }
+      if (!(key in cells)) return;
+      const cell = normalizeCell(cells[key]);
+      if (!cell.pending.some(p => p.id === mine[key])) { delete mine[key]; changed = true; }
+    });
+    if (changed) store('pr-requests', mine);
+  }
 
   // ---------- stats (admin sidebar) ----------
   function computeStats(allCells, details) {
@@ -437,86 +752,248 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     renderSidebar();
   }
 
+  // ---------- render: nav ----------
+  function renderNav() {
+    const pref = themePref();
+    const themeBtn = (value, label, ic) =>
+      `<button type="button" data-theme-set="${value}" aria-pressed="${pref === value}" aria-label="${label}" title="${label}">${icon(ic)}</button>`;
+    const themeControl = `
+      <div class="theme-seg" role="group" aria-label="Theme">
+        ${themeBtn('light', 'Light theme', 'sun')}${themeBtn('dark', 'Dark theme', 'moon')}${themeBtn('auto', 'Auto theme (follows device)', 'auto')}
+      </div>
+      <button type="button" class="icon-btn theme-cycle"></button>`;
+
+    let who;
+    if (isAdmin) {
+      who = `<div class="who"><span class="dot brass"></span><span class="lbl">Signed in as admin</span>
+        <button type="button" class="btn xs" id="signOutBtn">Sign out</button></div>`;
+    } else if (authChecked) {
+      who = `<div class="who"><span class="dot"></span><span class="lbl">Viewing as a visitor</span>
+        <button type="button" class="btn xs inverse" id="adminLoginBtn">Admin sign in</button></div>`;
+    } else {
+      who = `<div class="who"><span class="lbl">Checking access…</span></div>`;
+    }
+
+    const extra = isAdmin
+      ? `<button type="button" class="btn primary has-lbl-sm" id="sidebarToggle" aria-label="Admin panel${supervisorApps.length ? ', ' + supervisorApps.length + ' supervisor applications' : ''}">${icon('chart')}<span class="lbl">Admin panel</span>${supervisorApps.length ? `<span class="badge">${supervisorApps.length}</span>` : ''}</button>`
+      : `<a class="btn" href="#rules" aria-label="Room rules">${icon('rules')}<span class="lbl">Room rules</span></a>
+         ${authChecked ? `<button type="button" class="btn" id="supApplyBtn" aria-label="Become a supervisor">${icon('supervisor')}<span class="lbl">Become a supervisor</span></button>` : ''}`;
+
+    nav.innerHTML = `
+      <div class="brand">
+        <span class="brand-mark">${icon('note')}</span>
+        <div><div class="brand-title">Practice Room Schedule</div><div class="brand-eyebrow">KCM · Practice rooms</div></div>
+      </div>
+      <div class="nav-actions">${who}${extra}${themeControl}</div>`;
+
+    nav.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => setTheme(b.dataset.themeSet));
+    nav.querySelector('.theme-cycle').onclick = () => {
+      const order = ['auto', 'light', 'dark'];
+      setTheme(order[(order.indexOf(themePref()) + 1) % order.length]);
+      applyTheme();
+    };
+    const signOut = document.getElementById('signOutBtn'); if (signOut) signOut.onclick = () => auth.signOut();
+    const login = document.getElementById('adminLoginBtn'); if (login) login.onclick = openAdminLoginModal;
+    const sup = document.getElementById('supApplyBtn'); if (sup) sup.onclick = openSupervisorAppModal;
+    const side = document.getElementById('sidebarToggle'); if (side) side.onclick = () => { sidebarOpen = true; loadStats(); };
+    applyTheme();
+  }
+
+  // ---------- render: hero ----------
+  function nowPlaying(days) {
+    const today = days[0];
+    if (!isSameDate(today, new Date())) return null;
+    const ds = dateStr(today);
+    const now = new Date();
+    for (const p of PERIODS) {
+      const cell = getCell(ds, p.id);
+      if (cell.status !== 'open') continue;
+      const s = at(ds, p.start), e = at(ds, p.end);
+      if (s <= now && now < e) {
+        const left = Math.ceil((e - now) / 60000);
+        return { label: 'Now playing', period: p, cell, right: `${left} min left`, pct: Math.round((now - s) / (e - s) * 100) };
+      }
+      if (now < s) {
+        const inMin = Math.ceil((s - now) / 60000);
+        return { label: 'Up next', period: p, cell, right: inMin >= 60 ? `Starts at ${p.start.replace(/^0/, '')}` : `Starts in ${inMin} min`, pct: 0 };
+      }
+    }
+    return null;
+  }
+
+  function renderHero(days) {
+    const np = nowPlaying(days);
+    const bars = [10, 18, 13, 20].map(h => `<span style="height:${h}px"></span>`).join('');
+    const nowHtml = np ? `
+      <div class="now">
+        <span class="now-icon" aria-hidden="true">${bars}</span>
+        <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+          <span class="now-label">${np.label}</span>
+          <span class="now-title">${escapeHtml(np.period.name)} · ${np.period.time} <span>· ${np.cell.confirmed.length} of ${CAPACITY} in the room</span></span>
+        </div>
+        <div class="now-meter">
+          <span class="left">${np.right}</span>
+          <div class="track"><div style="width:${np.pct}%"></div></div>
+        </div>
+      </div>` : '';
+    return `
+      <section class="hero">
+        <span class="tag"><span class="dot"></span>${longDay(days[0])} – ${longDay(days[days.length - 1])} · Next three weekdays</span>
+        <h1 class="headline">Pick a period,<br><em>take the stage.</em></h1>
+        <p class="lede">${isAdmin
+          ? 'Open a period, review requests, keep the room full but not over.'
+          : `Every open period fits ${CAPACITY} players. Send a request, and you’re in once the admin confirms it.`}</p>
+        ${nowHtml}
+      </section>`;
+  }
+
+  // ---------- render: one period cell ----------
+  function barsHtml(n, kind) {
+    let h = '';
+    for (let i = 0; i < CAPACITY; i++) h += `<span${i < n ? ' class="on"' : ''}></span>`;
+    return `<span class="bars ${kind}" aria-hidden="true">${h}</span>`;
+  }
+
+  // Returns {cls, body, action} for a cell; used by both the grid and the phone list
+  function cellParts(ds, period) {
+    const key = cellKey(ds, period.id);
+    const cell = getCell(ds, period.id);
+    const n = cell.confirmed.length;
+    const full = n >= CAPACITY;
+    const ended = hasEnded(ds, period);
+    const sup = cell.supervisor ? ' · ' + escapeHtml(cell.supervisor) : '';
+    const btn = (action, label, cls) => `<button type="button" class="btn ${cls}" data-action="${action}" data-ds="${ds}" data-pid="${period.id}">${label}</button>`;
+
+    if (cell.status === 'closed') {
+      return {
+        cls: 'closed',
+        body: `<span class="closed-chip">${icon('lock')}Closed</span>`,
+        action: isAdmin ? btn('open', 'Open', 'sm') : ''
+      };
+    }
+
+    if (isAdmin) {
+      const pend = cell.pending.length;
+      let pills;
+      if (ended) pills = `<span class="pill">Ended · ${n}/${CAPACITY}</span>`;
+      else if (full) pills = `<span class="pill full"><i></i>Full · ${n}/${CAPACITY}</span>`;
+      else pills = `<span class="pill open"><i></i>${n}/${CAPACITY} in</span>`;
+      if (pend > 0) pills += `<span class="pill req">${pend} pending</span>`;
+      return {
+        cls: '',
+        body: `<div class="cell-row">${pills}</div><div class="meta"><b>${escapeHtml(cell.supervisor) || 'No supervisor'}</b></div>`,
+        action: btn('manage', 'Manage', ended ? 'sm' : 'sm primary')
+      };
+    }
+
+    if (ended) {
+      return {
+        cls: '',
+        body: `<div class="cell-row"><span class="pill">Ended</span></div><div class="meta"><b>Finished at ${period.end.replace(/^0/, '')}</b></div>`,
+        action: ''
+      };
+    }
+    if (isMine(cell, key)) {
+      return {
+        cls: 'req',
+        body: `<div class="cell-row"><span class="pill req">${icon('clock')}Requested</span>${barsHtml(n, 'req')}</div>
+               <div class="meta"><b>Awaiting confirmation</b> · ${n} of ${CAPACITY}</div>`,
+        action: ''
+      };
+    }
+    if (full) {
+      return {
+        cls: '',
+        body: `<div class="cell-row"><span class="pill full"><i></i>Full</span>${barsHtml(n, 'full')}</div><div class="meta"><b>${n} of ${CAPACITY}</b>${sup}</div>`,
+        action: ''
+      };
+    }
+    return {
+      cls: '',
+      body: `<div class="cell-row"><span class="pill open"><i></i>Open</span>${barsHtml(n, 'open')}</div><div class="meta"><b>${n} of ${CAPACITY}</b>${sup}</div>`,
+      action: `<button type="button" class="btn apply" data-action="apply" data-ds="${ds}" data-pid="${period.id}" aria-label="Apply for ${escapeHtml(period.name)}, ${longDay(new Date(ds + 'T00:00:00'))}">Apply${icon('arrow')}</button>`
+    };
+  }
+
+  // ---------- render: schedule ----------
+  function renderSetlist(days) {
+    const today = new Date();
+    const legend = isAdmin ? adminCounters(days) : `
+      <div class="legend" aria-label="Legend">
+        <span><i style="background:var(--teal)"></i>Open</span>
+        <span><i style="background:var(--brass)"></i>Requested</span>
+        <span><i style="background:var(--brick)"></i>Full</span>
+        <span><i style="border:1.5px dashed var(--muted)"></i>Closed</span>
+        <span><i style="background:var(--bar-off)"></i>Ended</span>
+      </div>`;
+
+    // Desktop grid: period rows x day columns
+    let grid = '<div class="grid"><div aria-hidden="true"></div>';
+    days.forEach(d => {
+      const isToday = isSameDate(d, today);
+      grid += `<div class="dhead${isToday ? ' today' : ''}">
+        <span class="dname">${DAY_NAMES[d.getDay()].toUpperCase()}</span><span class="ddate">${monthDay(d)}</span>
+        ${isToday ? '<span class="today-tag">Today</span>' : ''}</div>`;
+    });
+    PERIODS.forEach(p => {
+      grid += `<div class="prow"><span class="pcode">${p.code}</span>
+        <div style="display:flex;flex-direction:column;gap:2px;"><span class="pname${p.soft ? ' soft' : ''}">${p.name}</span><span class="ptime">${p.time}</span></div></div>`;
+      days.forEach(d => {
+        const part = cellParts(dateStr(d), p);
+        grid += `<div class="cell ${part.cls}"><div class="cell-body">${part.body}</div>${part.action}</div>`;
+      });
+    });
+    grid += '</div>';
+
+    // Phone: day tabs + one day's list
+    if (phoneDay >= days.length) phoneDay = 0;
+    const tabs = days.map((d, i) => `<button type="button" data-phone-day="${i}" aria-pressed="${i === phoneDay}">
+        <span class="dname">${DAY_NAMES[d.getDay()].toUpperCase()}</span><span class="ddate">${d.getDate()}</span></button>`).join('');
+    const pds = dateStr(days[phoneDay]);
+    const list = PERIODS.map(p => {
+      const part = cellParts(pds, p);
+      return `<div class="cell ${part.cls}"><span class="pcode">${p.code}</span>
+        <div class="cell-body"><span class="ptitle"><span class="pname${p.soft ? ' soft' : ''}">${p.name}</span> · ${p.time}</span>${part.body}</div>${part.action}</div>`;
+    }).join('');
+
+    return `
+      <section class="setlist" aria-labelledby="setlistTitle">
+        <div class="setlist-head">
+          <div class="setlist-title"><h2 id="setlistTitle">This week’s setlist</h2>
+            <span>${isAdmin ? 'Open a period, review requests, keep the room full but not over' : 'Pick any open period to apply'}</span></div>
+          ${legend}
+        </div>
+        ${grid}
+        <div class="day-tabs phone-only" role="group" aria-label="Day">${tabs}</div>
+        <div class="plist phone-only">${list}</div>
+      </section>`;
+  }
+
+  function adminCounters(days) {
+    let pending = 0, open = 0;
+    days.forEach(d => PERIODS.forEach(p => {
+      const c = getCell(dateStr(d), p.id);
+      if (c.status === 'open') { open++; pending += c.pending.length; }
+    }));
+    return `<div class="counters">
+      <span class="pill lg req">${pending} request${pending === 1 ? '' : 's'} waiting</span>
+      <span class="pill lg open"><i></i>${open} of ${days.length * PERIODS.length} periods open</span></div>`;
+  }
+
+  function renderRules() {
+    return `
+      <section class="rules" id="rules" aria-labelledby="rulesTitle">
+        <div style="display:flex;flex-direction:column;gap:4px;"><span class="eyebrow">Before you head in</span><h2 id="rulesTitle">House rules</h2></div>
+        ${HOUSE_RULES.map((r, i) => `<div class="rule"><span class="num">0${i + 1}</span><p>${r}</p></div>`).join('')}
+      </section>`;
+  }
+
   // ---------- main render ----------
   function render() {
     const days = getVisibleDays();
-    const today = new Date();
-
-    subline.textContent = isAdmin
-      ? 'Open a period, review requests, keep the room full but not over.'
-      : 'Open periods below — apply for a spot.';
-
-    modeBanner.style.display = 'flex';
-    if (isAdmin) {
-      modeBanner.innerHTML = `<span class="who"><span class="status-dot on"></span>Signed in as admin</span><button class="link" id="signOutLink">Sign out</button>`;
-      document.getElementById('signOutLink').onclick = () => auth.signOut();
-    } else if (authChecked) {
-      modeBanner.innerHTML = `<span class="who"><span class="status-dot"></span>Viewing as a visitor</span><button class="link" id="adminLoginLink">Admin sign in</button>`;
-      document.getElementById('adminLoginLink').onclick = openAdminLoginModal;
-    } else {
-      modeBanner.innerHTML = `<span class="who">Checking access…</span>`;
-    }
-
-    sidebarToggle.style.display = isAdmin ? 'flex' : 'none';
-    supFab.style.display = (!isAdmin && authChecked) ? 'flex' : 'none';
-
-    let html = '<div class="days-scroll">';
-    days.forEach(d => {
-      const ds = dateStr(d);
-      const todayCls = isSameDate(d, today) ? ' today' : '';
-      html += `<div class="day-col">
-        <div class="day-head${todayCls}">
-          <div class="day-name">${DAY_NAMES[d.getDay()]}</div>
-          <div class="day-date">${fmtDate(d)}</div>
-        </div>`;
-      PERIODS.forEach(period => { html += renderSlot(ds, period); });
-      html += '</div>';
-    });
-    html += '</div>';
-    app.innerHTML = html;
+    renderNav();
+    app.innerHTML = renderHero(days) + renderSetlist(days) + renderRules();
     attachHandlers();
-  }
-
-  function renderSlot(ds, period) {
-    const cell = getCell(ds, period.id);
-    const confirmedN = cell.confirmed.length;
-    const pendingN = cell.pending.length;
-    const isFull = confirmedN >= CAPACITY;
-    const ended = hasEnded(ds, period);
-    let stateCls = '';
-    let pill = '';
-    let extra = '';
-    const supLine = cell.supervisor ? `<div class="slot-sup">Supervisor: ${escapeHtml(cell.supervisor)}</div>` : '';
-
-    if (cell.status === 'closed') {
-      pill = `<span class="pill pill-closed">Closed</span>`;
-      if (isAdmin) extra = `<button class="action btn-ghost" data-action="open" data-ds="${ds}" data-pid="${period.id}">Open</button>`;
-    } else if (isAdmin) {
-      stateCls = isFull ? 'state-full' : 'state-open';
-      pill = isFull
-        ? `<span class="pill pill-full">Full · ${confirmedN}/${CAPACITY}</span>`
-        : `<span class="pill pill-open">${confirmedN}/${CAPACITY} confirmed</span>`;
-      if (pendingN > 0) pill += ` <span class="pill pill-pending">${pendingN} pending</span>`;
-      if (ended) pill += ` <span class="pill pill-closed">Ended</span>`;
-      extra = `<button class="action btn-primary" data-action="manage" data-ds="${ds}" data-pid="${period.id}">Manage</button>`;
-    } else if (ended) {
-      stateCls = 'state-full';
-      pill = `<span class="pill pill-closed">Ended</span>`;
-    } else {
-      stateCls = isFull ? 'state-full' : 'state-open';
-      pill = isFull
-        ? `<span class="pill pill-full">Full</span>`
-        : `<span class="pill pill-open">${confirmedN}/${CAPACITY} spots filled</span>`;
-      if (!isFull) extra = `<button class="action btn-primary" data-action="apply" data-ds="${ds}" data-pid="${period.id}">Apply</button>`;
-    }
-
-    return `<div class="slot ${stateCls}">
-      <div class="period-name">${escapeHtml(period.name)}</div>
-      <div class="period-time">${escapeHtml(period.time)}</div>
-      ${pill}
-      ${cell.status !== 'closed' ? supLine : ''}
-      ${extra}
-    </div>`;
   }
 
   function attachHandlers() {
@@ -528,6 +1005,12 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
         else if (action === 'apply') openApplyModal(ds, pid);
       });
     });
+    app.querySelectorAll('[data-phone-day]').forEach(b => b.addEventListener('click', () => {
+      phoneDay = Number(b.dataset.phoneDay);
+      render();
+      const again = app.querySelector(`[data-phone-day="${phoneDay}"]`);
+      if (again) again.focus();
+    }));
   }
 
   // ---------- Firestore refs ----------
@@ -551,6 +1034,10 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     // Re-opening keeps earlier confirmed attendees and outcomes
     try { await mutateCell(ds, pid, cur => ({ ...cur, status: 'open', supervisor: supName })); }
     catch (e) { showToast('Could not open — ' + e.message); }
+  }
+  async function setSupervisor(ds, pid, supName) {
+    try { await mutateCell(ds, pid, cur => ({ ...cur, supervisor: supName })); }
+    catch (e) { showToast('Could not change supervisor — ' + e.message); }
   }
   async function closeCell(ds, pid) {
     // Keep confirmed for statistics; anyone still waiting counts as declined
@@ -603,8 +1090,11 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     const batch = db.batch();
     batch.set(detailsDoc, { cellId: key, name, instrument, note, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     batch.update(cellsRef.doc(key), { pending: firebase.firestore.FieldValue.arrayUnion({ id: detailsDoc.id, name }) });
-    try { await batch.commit(); return true; }
-    catch (e) {
+    try {
+      await batch.commit();
+      const mine = myRequests(); mine[key] = detailsDoc.id; store('pr-requests', mine);
+      return true;
+    } catch (e) {
       showToast(e.code === 'permission-denied'
         ? 'This period just closed or filled up'
         : 'Could not send request — ' + e.message);
@@ -612,7 +1102,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     }
   }
 
-  // Admin only: fetch instrument/reason for the requests shown in the Manage modal
+  // Admin only: fetch instrument/reason for the requests shown in the Manage window
   function ensureDetails(ids, onLoaded) {
     const missing = ids.filter(id => !(id in detailsCache) && !detailsLoading.has(id));
     if (missing.length === 0) return;
@@ -638,6 +1128,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       .onSnapshot(snap => {
         cells = {};
         snap.forEach(doc => { cells[doc.id] = doc.data(); });
+        pruneMyRequests();
         render();
         if (activeManage) activeManage.refresh();
       }, err => showToast('Sync error — ' + err.message));
@@ -651,130 +1142,161 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   }
 
   // ---------- modals ----------
-  function openPeriodModal(ds, pid) {
-    const period = PERIODS.find(p => p.id === pid);
-    const d = new Date(ds + 'T00:00:00');
-    const title = `${period.name} · ${DAY_NAMES[d.getDay()]} ${fmtDate(d)}`;
-    const myName = (auth.currentUser && auth.currentUser.displayName) || '';
-    let options = `<option value="__me__">Me (${myName ? escapeHtml(myName) : 'you'})</option>`;
-    supervisors.forEach(s => { options += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`; });
-
+  // Every modal: backdrop click / Escape closes, focus moves inside, and returns on close
+  function openModal(html, { wide = false, label = 'Dialog', onClose } = {}) {
+    const opener = document.activeElement;
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal">
-        <h3>Open ${escapeHtml(title)}</h3>
-        <div class="sub">Who's supervising this period? Up to ${CAPACITY} people can join.</div>
-        <select id="supSelect">${options}</select>
-        <div id="myNameWrap" style="display:none;">
-          <input type="text" id="myNameInput" placeholder="Your name as visitors will see it" maxlength="60">
-          <div class="sub" style="margin:-4px 0 10px;">Saved once — you won't be asked again.</div>
-        </div>
-        <div class="modal-actions">
-          <button class="action btn-ghost" id="mCancel">Cancel</button>
-          <button class="action btn-primary" id="mConfirm">Open period</button>
-        </div>
-      </div>`;
+    backdrop.innerHTML = `<section class="modal${wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-label="${escapeHtml(label)}">${html}</section>`;
     document.body.appendChild(backdrop);
-    const select = document.getElementById('supSelect');
-    const nameWrap = document.getElementById('myNameWrap');
-    const syncNameField = () => { nameWrap.style.display = (select.value === '__me__' && !myName) ? 'block' : 'none'; };
+    const modal = backdrop.firstElementChild;
+    const close = () => {
+      if (!backdrop.isConnected) return;
+      backdrop.remove();
+      document.removeEventListener('keydown', onKey);
+      if (onClose) onClose();
+      if (opener && opener.isConnected) opener.focus();
+    };
+    const onKey = (e) => {
+      const open = document.querySelectorAll('.modal-backdrop');
+      if (e.key === 'Escape' && open[open.length - 1] === backdrop) close();
+    };
+    document.addEventListener('keydown', onKey);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+    const first = modal.querySelector('input, select, textarea, button');
+    if (first) first.focus();
+    return { backdrop, modal, close };
+  }
+
+  function periodTitle(ds, pid) {
+    const period = PERIODS.find(p => p.id === pid);
+    const d = new Date(ds + 'T00:00:00');
+    return { period, when: `${longDay(d)} · ${period.time}` };
+  }
+
+  // "Me (name)" option; returns null name if the admin hasn't saved one yet
+  function myDisplayName() { return (auth.currentUser && auth.currentUser.displayName) || ''; }
+  function supervisorOptions(current) {
+    const me = myDisplayName();
+    const names = [];
+    if (me) names.push({ value: me, label: `Me (${me})` });
+    supervisors.forEach(s => { if (s.name !== me) names.push({ value: s.name, label: s.name }); });
+    if (current && !names.some(n => n.value === current)) names.unshift({ value: current, label: current });
+    return names.map(n => `<option value="${escapeHtml(n.value)}"${n.value === current ? ' selected' : ''}>${escapeHtml(n.label)}</option>`).join('');
+  }
+
+  function openPeriodModal(ds, pid) {
+    const { period, when } = periodTitle(ds, pid);
+    const myName = myDisplayName();
+    let options = `<option value="__me__">Me (${myName ? escapeHtml(myName) : 'you'})</option>`;
+    supervisors.forEach(s => { if (s.name !== myName) options += `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`; });
+
+    const { modal, close } = openModal(`
+      <div class="modal-head"><span class="eyebrow-accent">${escapeHtml(when)}</span><h3>Open ${escapeHtml(period.name)}</h3>
+        <span class="sub">Who’s supervising? Up to ${CAPACITY} people can join.</span></div>
+      <label class="field">Supervisor<select id="supSelect">${options}</select></label>
+      <label class="field" id="myNameWrap" hidden>Your name <span class="opt">(as visitors will see it — saved once)</span>
+        <input type="text" id="myNameInput" maxlength="60" autocomplete="name"></label>
+      <div class="modal-actions">
+        <button type="button" class="btn sm ghost" id="mCancel">Cancel</button>
+        <button type="button" class="btn sm primary" id="mConfirm">Open period</button>
+      </div>`, { label: 'Open ' + period.name });
+    const select = modal.querySelector('#supSelect');
+    const nameWrap = modal.querySelector('#myNameWrap');
+    const syncNameField = () => { nameWrap.hidden = !(select.value === '__me__' && !myName); };
     select.onchange = syncNameField;
     syncNameField();
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-    document.getElementById('mCancel').onclick = () => backdrop.remove();
-    document.getElementById('mConfirm').onclick = async () => {
+    modal.querySelector('#mCancel').onclick = close;
+    modal.querySelector('#mConfirm').onclick = async () => {
       let sup = select.value;
       if (sup === '__me__') {
         sup = myName;
         if (!sup) {
-          sup = document.getElementById('myNameInput').value.trim();
+          sup = modal.querySelector('#myNameInput').value.trim();
           if (!sup) { showToast('Please enter your name'); return; }
           try { await auth.currentUser.updateProfile({ displayName: sup }); }
           catch (e) { showToast('Could not save your name — ' + e.message); return; }
         }
       }
-      backdrop.remove();
+      close();
       openCellWith(ds, pid, sup);
     };
   }
 
   function openManageModal(ds, pid) {
-    const period = PERIODS.find(p => p.id === pid);
-    const d = new Date(ds + 'T00:00:00');
-    const title = `${period.name} · ${DAY_NAMES[d.getDay()]} ${fmtDate(d)}`;
+    const { period, when } = periodTitle(ds, pid);
     const key = cellKey(ds, pid);
 
-    const metaOf = (p) => {
-      const det = detailsCache[p.id] || {};
-      const inst = det.instrument !== undefined ? det.instrument : p.instrument;
-      const note = det.note !== undefined ? det.note : p.note;
-      if (!(p.id in detailsCache) && inst === undefined) return 'Loading…';
-      return [inst, note].filter(Boolean).map(escapeHtml).join(' · ') || '—';
+    const detailOf = (p) => {
+      const det = detailsCache[p.id];
+      if (!det && p.instrument === undefined) return { loading: true };
+      return { instrument: det && det.instrument !== undefined ? det.instrument : p.instrument, note: det && det.note !== undefined ? det.note : p.note };
     };
+
+    const { modal, close } = openModal('', {
+      wide: true, label: 'Manage ' + period.name,
+      onClose: () => { if (activeManage && activeManage.key === key) activeManage = null; }
+    });
 
     function draw() {
       const cell = getCell(ds, pid);
+      const n = cell.confirmed.length;
+      const left = CAPACITY - n;
       ensureDetails([...cell.pending, ...cell.confirmed].map(p => p.id), () => { if (activeManage && activeManage.key === key) draw(); });
-      const pendingHtml = cell.pending.length === 0
-        ? '<div class="empty-note">No pending requests.</div>'
-        : `<div class="list-block">${cell.pending.map(p => `
-            <div class="list-row">
-              <div class="list-row-info">
-                <div class="list-row-name">${escapeHtml(p.name)}</div>
-                <div class="list-row-meta">${metaOf(p)}</div>
-              </div>
-              <div class="list-row-actions">
-                <button class="mini-btn" data-pending-accept="${escapeHtml(p.id)}" title="Accept">${ICONS.check}</button>
-                <button class="mini-btn danger" data-pending-decline="${escapeHtml(p.id)}" title="Decline">${ICONS.x}</button>
-              </div>
-            </div>`).join('')}</div>`;
+      const focusedId = document.activeElement && document.activeElement.id;
 
-      const confirmedHtml = cell.confirmed.length === 0
+      const waiting = cell.pending.length === 0
+        ? '<div class="empty-note">No one is waiting.</div>'
+        : `<div class="waiting">${cell.pending.map(p => {
+            const d = detailOf(p);
+            const inst = d.loading ? '' : (d.instrument ? ` <span>· ${escapeHtml(d.instrument)}</span>` : '');
+            const reason = d.loading ? '<span class="wait-reason none">Loading…</span>'
+              : d.note ? `<span class="wait-reason">“${escapeHtml(d.note)}”</span>` : '<span class="wait-reason none">No reason given</span>';
+            return `<div class="wait-row"><div class="wait-info"><span class="wait-name">${escapeHtml(p.name)}${inst}</span>${reason}</div>
+              <button type="button" class="icon-btn solid" data-accept="${escapeHtml(p.id)}" aria-label="Accept ${escapeHtml(p.name)}">${icon('check')}</button>
+              <button type="button" class="icon-btn danger" data-decline="${escapeHtml(p.id)}" aria-label="Decline ${escapeHtml(p.name)}">${icon('x')}</button></div>`;
+          }).join('')}</div>`;
+
+      const inRoom = n === 0
         ? '<div class="empty-note">No one confirmed yet.</div>'
-        : `<div class="list-block">${cell.confirmed.map(p => `
-            <div class="list-row">
-              <div class="list-row-info">
-                <div class="list-row-name">${escapeHtml(p.name)}</div>
-                <div class="list-row-meta">${metaOf(p)}</div>
-              </div>
-              <div class="list-row-actions">
-                <button class="mini-btn danger" data-confirmed-remove="${escapeHtml(p.id)}" title="Remove">${ICONS.close}</button>
-              </div>
-            </div>`).join('')}</div>`;
+        : `<div class="in-room">${cell.confirmed.map(p => {
+            const d = detailOf(p);
+            const title = !d.loading && (d.instrument || d.note) ? ` title="${escapeHtml([d.instrument, d.note].filter(Boolean).join(' · '))}"` : '';
+            return `<span${title}>${escapeHtml(p.name)}<button type="button" data-remove="${escapeHtml(p.id)}" aria-label="Remove ${escapeHtml(p.name)}">${icon('x')}</button></span>`;
+          }).join('')}</div>`;
 
-      modalEl.innerHTML = `
-        <h3>${escapeHtml(title)}</h3>
-        <div class="sub">${cell.confirmed.length}/${CAPACITY} confirmed${cell.supervisor ? ' · Supervisor: ' + escapeHtml(cell.supervisor) : ''}</div>
-        <div class="sec-title" style="margin-top:2px;">Pending requests</div>
-        ${pendingHtml}
-        <div class="sec-title">Confirmed</div>
-        ${confirmedHtml}
-        <div class="modal-actions" style="margin-top:16px;">
-          <button class="action btn-ghost" id="mmClose">Close panel</button>
-          <button class="action btn-danger-ghost" id="mmClosePeriod">Close period</button>
+      const warn = left === 1 && cell.pending.length > 0 ? '<span>Accepting one fills the room</span>'
+        : left === 0 && cell.pending.length > 0 ? '<span>The room is full</span>' : '';
+
+      modal.innerHTML = `
+        <div class="modal-head-row">
+          <div class="modal-head"><span class="eyebrow-accent">${escapeHtml(when)}</span><h3>${escapeHtml(period.name)}</h3></div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span class="pill lg ${n >= CAPACITY ? 'full' : 'open'}"><i></i>${n}/${CAPACITY} in</span>
+            ${left > 0 ? `<span class="pill lg full">${left} spot${left === 1 ? '' : 's'} left</span>` : ''}
+          </div>
+        </div>
+        <label class="sup-switch">Supervisor<select id="mmSup">${supervisorOptions(cell.supervisor)}</select></label>
+        <div class="list-head"><h4>Waiting · ${cell.pending.length}</h4>${warn}</div>
+        ${waiting}
+        <div class="list-head"><h4>In the room · ${n} of ${CAPACITY}</h4></div>
+        ${inRoom}
+        <div class="modal-actions split">
+          <button type="button" class="btn sm danger" id="mmClosePeriod">Close period</button>
+          <button type="button" class="btn sm primary" id="mmDone">Done</button>
         </div>`;
 
       // The live listener redraws after each change, so no manual redraw here
-      modalEl.querySelectorAll('[data-pending-accept]').forEach(b => b.onclick = () => acceptPending(ds, pid, b.dataset.pendingAccept));
-      modalEl.querySelectorAll('[data-pending-decline]').forEach(b => b.onclick = () => declinePending(ds, pid, b.dataset.pendingDecline));
-      modalEl.querySelectorAll('[data-confirmed-remove]').forEach(b => b.onclick = () => removeConfirmed(ds, pid, b.dataset.confirmedRemove));
-      document.getElementById('mmClose').onclick = close;
-      document.getElementById('mmClosePeriod').onclick = () => { close(); closeCell(ds, pid); };
+      modal.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => acceptPending(ds, pid, b.dataset.accept));
+      modal.querySelectorAll('[data-decline]').forEach(b => b.onclick = () => declinePending(ds, pid, b.dataset.decline));
+      modal.querySelectorAll('[data-remove]').forEach(b => b.onclick = () => removeConfirmed(ds, pid, b.dataset.remove));
+      modal.querySelector('#mmSup').onchange = (e) => setSupervisor(ds, pid, e.target.value);
+      modal.querySelector('#mmDone').onclick = close;
+      modal.querySelector('#mmClosePeriod').onclick = () => { close(); closeCell(ds, pid); };
+      const refocus = focusedId && modal.querySelector('#' + focusedId);
+      if (refocus) refocus.focus();
     }
 
-    function close() {
-      if (activeManage && activeManage.key === key) activeManage = null;
-      backdrop.remove();
-    }
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    const modalEl = document.createElement('div');
-    modalEl.className = 'modal';
-    backdrop.appendChild(modalEl);
-    document.body.appendChild(backdrop);
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
     activeManage = {
       key,
       refresh: () => {
@@ -783,115 +1305,91 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       }
     };
     draw();
+    const done = modal.querySelector('#mmDone'); if (done) done.focus();
   }
 
   function openApplyModal(ds, pid) {
-    const period = PERIODS.find(p => p.id === pid);
-    const d = new Date(ds + 'T00:00:00');
-    const title = `${period.name} (${period.time}) · ${DAY_NAMES[d.getDay()]} ${fmtDate(d)}`;
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal">
-        <h3>Apply for ${escapeHtml(title)}</h3>
-        <div class="sub">The admin will approve or decline your request.</div>
-        <input type="text" id="applyName" placeholder="Your name" maxlength="60">
-        <input type="text" id="applyInstrument" placeholder="Instrument (optional)" maxlength="40">
-        <textarea id="applyNote" placeholder="Reason (optional)" maxlength="200"></textarea>
-        <div class="modal-actions">
-          <button class="action btn-ghost" id="applyCancel">Cancel</button>
-          <button class="action btn-primary" id="applySubmit">Send request</button>
-        </div>
-      </div>`;
-    document.body.appendChild(backdrop);
-    document.getElementById('applyCancel').onclick = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-    const submit = document.getElementById('applySubmit');
+    const { period, when } = periodTitle(ds, pid);
+    const cell = getCell(ds, pid);
+    const { modal, close } = openModal(`
+      <div class="modal-head"><span class="eyebrow-accent">${escapeHtml(when)}</span><h3>Apply for ${escapeHtml(period.name)}</h3>
+        <span class="sub">${cell.confirmed.length} of ${CAPACITY} spots filled${cell.supervisor ? ' · ' + escapeHtml(cell.supervisor) : ''}</span></div>
+      <label class="field">Your name<input type="text" id="applyName" placeholder="As other visitors will see it" maxlength="60" autocomplete="name"></label>
+      <label class="field"><span>Instrument <span class="opt">(optional)</span></span><input type="text" id="applyInstrument" placeholder="e.g. Alto sax" maxlength="40"></label>
+      <label class="field"><span>Reason <span class="opt">(optional)</span></span><textarea id="applyNote" rows="3" placeholder="What you are working on" maxlength="200"></textarea></label>
+      <div class="note">${icon('eye')}<span>Other visitors only see your name. Your instrument and reason go to the admin.</span></div>
+      <div class="modal-actions">
+        <button type="button" class="btn sm ghost" id="applyCancel">Cancel</button>
+        <button type="button" class="btn sm primary" id="applySubmit">Send request</button>
+      </div>`, { label: 'Apply for ' + period.name });
+    modal.querySelector('#applyCancel').onclick = close;
+    const submit = modal.querySelector('#applySubmit');
     submit.onclick = async () => {
-      const name = document.getElementById('applyName').value.trim();
-      const instrument = document.getElementById('applyInstrument').value.trim();
-      const note = document.getElementById('applyNote').value.trim();
-      if (!name) { showToast('Please enter your name'); return; }
+      const name = modal.querySelector('#applyName').value.trim();
+      const instrument = modal.querySelector('#applyInstrument').value.trim();
+      const note = modal.querySelector('#applyNote').value.trim();
+      if (!name) { showToast('Please enter your name'); modal.querySelector('#applyName').focus(); return; }
       submit.disabled = true;
       const ok = await applyToCell(ds, pid, name, instrument, note);
       submit.disabled = false;
-      if (ok) { backdrop.remove(); showToast('Request sent!'); }
+      if (ok) { close(); showToast(`Request sent for ${period.name}. It shows as Requested until the admin confirms.`); render(); }
     };
   }
 
   function openSupervisorAppModal() {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal">
-        <h3>Apply to be a supervisor</h3>
-        <div class="sub">The admin reviews every request — this doesn't grant site access, it just adds you to the supervisor list.</div>
-        <input type="text" id="supName" placeholder="Your name" maxlength="60">
-        <textarea id="supMsg" placeholder="Anything you'd like to add (optional)" maxlength="200"></textarea>
-        <div class="modal-actions">
-          <button class="action btn-ghost" id="supCancel">Cancel</button>
-          <button class="action btn-primary" id="supSubmit">Send application</button>
-        </div>
-      </div>`;
-    document.body.appendChild(backdrop);
-    document.getElementById('supCancel').onclick = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-    document.getElementById('supSubmit').onclick = async () => {
-      const name = document.getElementById('supName').value.trim();
-      const message = document.getElementById('supMsg').value.trim();
+    const { modal, close } = openModal(`
+      <div class="modal-head"><span class="eyebrow-accent">Join the roster</span><h3>Become a supervisor</h3>
+        <span class="sub">The admin reviews every request. This doesn’t grant site access — it adds you to the supervisor list.</span></div>
+      <label class="field">Your name<input type="text" id="supName" maxlength="60" autocomplete="name"></label>
+      <label class="field"><span>Message <span class="opt">(optional)</span></span><textarea id="supMsg" rows="3" placeholder="Anything you’d like to add" maxlength="200"></textarea></label>
+      <div class="modal-actions">
+        <button type="button" class="btn sm ghost" id="supCancel">Cancel</button>
+        <button type="button" class="btn sm primary" id="supSubmit">Send application</button>
+      </div>`, { label: 'Become a supervisor' });
+    modal.querySelector('#supCancel').onclick = close;
+    modal.querySelector('#supSubmit').onclick = async () => {
+      const name = modal.querySelector('#supName').value.trim();
+      const message = modal.querySelector('#supMsg').value.trim();
       if (!name) { showToast('Please enter your name'); return; }
       try {
         await appsRef.add({ name, message, ts: firebase.firestore.FieldValue.serverTimestamp() });
-        backdrop.remove();
+        close();
         showToast('Application sent!');
       } catch (e) { showToast('Could not send — ' + e.message); }
     };
   }
 
   function openAdminLoginModal() {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal">
-        <h3>Admin sign in</h3>
-        <div class="sub">Only you have this password.</div>
-        <input type="email" id="adminEmail" placeholder="Email" autocomplete="username">
-        <input type="password" id="adminPass" placeholder="Password" autocomplete="current-password">
-        <div class="error-text" id="loginError" style="display:none;"></div>
-        <div class="modal-actions">
-          <button class="action btn-ghost" id="loginCancel">Cancel</button>
-          <button class="action btn-primary" id="loginSubmit">Sign in</button>
-        </div>
-      </div>`;
-    document.body.appendChild(backdrop);
-    document.getElementById('loginCancel').onclick = () => backdrop.remove();
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-    document.getElementById('loginSubmit').onclick = async () => {
-      const email = document.getElementById('adminEmail').value.trim();
-      const pass = document.getElementById('adminPass').value;
-      const errEl = document.getElementById('loginError');
-      try { await auth.signInWithEmailAndPassword(email, pass); backdrop.remove(); }
-      catch (e) { errEl.textContent = 'Sign-in failed — check email and password.'; errEl.style.display = 'block'; }
+    const { modal, close } = openModal(`
+      <div class="modal-head"><span class="eyebrow-accent">Admin</span><h3>Sign in</h3><span class="sub">Only the room admin has this password.</span></div>
+      <label class="field">Email<input type="email" id="adminEmail" autocomplete="username"></label>
+      <label class="field">Password<input type="password" id="adminPass" autocomplete="current-password"></label>
+      <div class="error-text" id="loginError" hidden></div>
+      <div class="modal-actions">
+        <button type="button" class="btn sm ghost" id="loginCancel">Cancel</button>
+        <button type="button" class="btn sm primary" id="loginSubmit">Sign in</button>
+      </div>`, { label: 'Admin sign in' });
+    modal.querySelector('#loginCancel').onclick = close;
+    const submit = async () => {
+      const email = modal.querySelector('#adminEmail').value.trim();
+      const pass = modal.querySelector('#adminPass').value;
+      const errEl = modal.querySelector('#loginError');
+      try { await auth.signInWithEmailAndPassword(email, pass); close(); }
+      catch (e) { errEl.textContent = 'Sign-in failed — check email and password.'; errEl.hidden = false; }
     };
+    modal.querySelector('#loginSubmit').onclick = submit;
+    modal.querySelector('#adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
   }
 
-  function showDisclaimer() {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal">
-        <h3>Before you head in</h3>
-        <ul class="disclaimer">
-          <li data-n="1">Doors lock 5 minutes into each period — after that, no one gets let in.</li>
-          <li data-n="2">Rooms are limited, so it's first-come, first-served.</li>
-          <li data-n="3">Everyone inside needs to actually be doing something music-related to keep their spot.</li>
-        </ul>
-        <div class="modal-actions">
-          <button class="action btn-primary" id="discOk" style="width:100%;">Got it</button>
-        </div>
-      </div>`;
-    document.body.appendChild(backdrop);
-    document.getElementById('discOk').onclick = () => backdrop.remove();
+  // Shown once per browser; the rules strip stays on the page for everyone
+  function maybeShowRulesNotice() {
+    if (store('pr-rules-seen')) return;
+    const { modal, close } = openModal(`
+      <div class="modal-head"><span class="eyebrow-accent">Before you head in</span><h3>House rules</h3></div>
+      <ol class="house">${HOUSE_RULES.map((r, i) => `<li><span class="num">0${i + 1}</span><span>${r}</span></li>`).join('')}</ol>
+      <div class="modal-actions"><button type="button" class="btn sm primary" id="discOk" style="width:100%;">Got it</button></div>`,
+      { label: 'House rules', onClose: () => store('pr-rules-seen', true) });
+    modal.querySelector('#discOk').onclick = close;
   }
 
   // ---------- sidebar (admin only) ----------
@@ -902,7 +1400,9 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   function renderSidebar() {
     const existing = document.getElementById('adminSidebarOverlay');
     const prevScroll = existing ? existing.querySelector('.sidebar').scrollTop : 0;
+    const hadFocus = !!existing && existing.contains(document.activeElement);
     if (existing) existing.remove();
+    renderNavBadgeOnly();
     if (!isAdmin || !sidebarOpen) return;
 
     let statsHtml;
@@ -915,26 +1415,26 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       statsHtml = `<div class="empty-note">${stats === 'error' ? 'Statistics could not be loaded.' : 'Loading statistics…'}</div>`;
     }
 
-    let appsHtml = supervisorApps.length === 0
+    const appsHtml = supervisorApps.length === 0
       ? '<div class="empty-note">No pending applications.</div>'
       : supervisorApps.map(a => `
         <div class="app-item">
           <div class="app-name">${escapeHtml(a.name)}</div>
-          ${a.message ? `<div class="app-msg">"${escapeHtml(a.message)}"</div>` : ''}
+          ${a.message ? `<div class="app-msg">“${escapeHtml(a.message)}”</div>` : ''}
           <div class="btn-row">
-            <button class="action btn-primary" data-supaction="accept" data-id="${a.id}">Accept</button>
-            <button class="action btn-danger-ghost" data-supaction="decline" data-id="${a.id}">Decline</button>
+            <button type="button" class="btn sm primary" data-supaction="accept" data-id="${a.id}">Accept</button>
+            <button type="button" class="btn sm danger" data-supaction="decline" data-id="${a.id}">Decline</button>
           </div>
         </div>`).join('');
 
-    let supRows = supervisors.length === 0
+    const supRows = supervisors.length === 0
       ? '<div class="empty-note">No approved supervisors yet.</div>'
       : supervisors.map(s => `
         <div class="sup-row">
           <span>${escapeHtml(s.name)}</span>
           <div class="sup-actions">
-            <button class="mini-btn" data-editsup="${s.id}" data-name="${escapeHtml(s.name)}" title="Rename">${ICONS.pencil}</button>
-            <button class="mini-btn danger" data-removesup="${s.id}" title="Remove">${ICONS.trash}</button>
+            <button type="button" class="icon-btn" data-editsup="${s.id}" data-name="${escapeHtml(s.name)}" aria-label="Rename ${escapeHtml(s.name)}">${icon('pencil')}</button>
+            <button type="button" class="icon-btn danger" data-removesup="${s.id}" aria-label="Remove ${escapeHtml(s.name)}">${icon('trash')}</button>
           </div>
         </div>`).join('');
 
@@ -942,19 +1442,22 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     overlay.id = 'adminSidebarOverlay';
     overlay.innerHTML = `
       <div class="sidebar-overlay" id="sbOverlayBg"></div>
-      <div class="sidebar">
-        <div class="sidebar-head"><h2>Admin panel</h2><button class="icon-btn" id="sbClose">${ICONS.close}</button></div>
+      <aside class="sidebar" role="dialog" aria-modal="true" aria-label="Admin panel">
+        <div class="sidebar-head"><h2>Admin panel</h2><button type="button" class="icon-btn" id="sbClose" aria-label="Close admin panel">${icon('x')}</button></div>
         <div class="sec-title">Statistics</div>
         ${statsHtml}
         <div class="sec-title">Supervisor applications</div>
         ${appsHtml}
         <div class="sec-title">Approved supervisors</div>
         ${supRows}
-      </div>`;
+      </aside>`;
     document.body.appendChild(overlay);
     overlay.querySelector('.sidebar').scrollTop = prevScroll;
-    document.getElementById('sbClose').onclick = () => { sidebarOpen = false; renderSidebar(); };
-    document.getElementById('sbOverlayBg').onclick = () => { sidebarOpen = false; renderSidebar(); };
+    const closeSidebar = () => { sidebarOpen = false; renderSidebar(); const t = document.getElementById('sidebarToggle'); if (t) t.focus(); };
+    document.getElementById('sbClose').onclick = closeSidebar;
+    document.getElementById('sbOverlayBg').onclick = closeSidebar;
+    // Keep keyboard focus inside the panel when it redraws (e.g. stats finish loading)
+    if (!existing || hadFocus) document.getElementById('sbClose').focus();
 
     overlay.querySelectorAll('button[data-supaction]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -980,40 +1483,46 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       btn.addEventListener('click', () => openRenameSupervisorModal(btn.dataset.editsup, btn.dataset.name));
     });
   }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && sidebarOpen && !document.querySelector('.modal-backdrop')) { sidebarOpen = false; renderSidebar(); }
+  });
+
+  // Keep the Admin panel badge current without re-rendering the whole nav
+  function renderNavBadgeOnly() {
+    const t = document.getElementById('sidebarToggle');
+    if (!t) return;
+    const n = supervisorApps.length;
+    let badge = t.querySelector('.badge');
+    if (n && !badge) { badge = document.createElement('span'); badge.className = 'badge'; t.appendChild(badge); }
+    if (badge) { if (n) badge.textContent = n; else badge.remove(); }
+    t.setAttribute('aria-label', 'Admin panel' + (n ? `, ${n} supervisor applications` : ''));
+  }
 
   function openRenameSupervisorModal(id, currentName) {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal">
-        <h3>Rename supervisor</h3>
-        <input type="text" id="renameInput" value="${escapeHtml(currentName)}" maxlength="60">
-        <div class="modal-actions">
-          <button class="action btn-ghost" id="renameCancel">Cancel</button>
-          <button class="action btn-primary" id="renameSave">Save</button>
-        </div>
-      </div>`;
-    document.body.appendChild(backdrop);
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-    document.getElementById('renameCancel').onclick = () => backdrop.remove();
-    document.getElementById('renameSave').onclick = async () => {
-      const newName = document.getElementById('renameInput').value.trim();
-      if (!newName) { showToast('Name can\'t be empty'); return; }
-      try { await supervisorsRef.doc(id).update({ name: newName }); backdrop.remove(); }
+    const { modal, close } = openModal(`
+      <div class="modal-head"><h3>Rename supervisor</h3></div>
+      <label class="field">Name<input type="text" id="renameInput" value="${escapeHtml(currentName)}" maxlength="60"></label>
+      <div class="modal-actions">
+        <button type="button" class="btn sm ghost" id="renameCancel">Cancel</button>
+        <button type="button" class="btn sm primary" id="renameSave">Save</button>
+      </div>`, { label: 'Rename supervisor' });
+    modal.querySelector('#renameCancel').onclick = close;
+    modal.querySelector('#renameSave').onclick = async () => {
+      const newName = modal.querySelector('#renameInput').value.trim();
+      if (!newName) { showToast('Name can’t be empty'); return; }
+      try { await supervisorsRef.doc(id).update({ name: newName }); close(); }
       catch (e) { showToast('Could not rename — ' + e.message); }
     };
   }
 
   // ---------- startup ----------
-  sidebarToggle.onclick = () => { sidebarOpen = true; loadStats(); };
-  supFab.onclick = openSupervisorAppModal;
-
   supervisorsRef.onSnapshot(snap => {
     supervisors = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderSidebar();
   }, err => console.error(err));
 
   auth.onAuthStateChanged(user => {
+    const firstCheck = !authChecked;
     authChecked = true;
     isAdmin = !!(user && user.uid === ADMIN_UID);
 
@@ -1032,7 +1541,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
 
     render();
     renderSidebar();
-    if (!isAdmin) showDisclaimer();
+    if (!isAdmin && firstCheck) maybeShowRulesNotice();
   });
 
   lastMinute = minuteKey();
