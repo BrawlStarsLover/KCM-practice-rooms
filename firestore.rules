@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == "TdvMfESAnahSxiSGdZvzOGEiAAV2";
+    }
+
+    // Practice-room period slots. Each doc looks like:
+    // { status: 'open'|'closed', supervisor: string, pending: [...], confirmed: [...] }
+    match /cells/{cellId} {
+      allow read: if true;
+      // The admin can open/close/accept/decline/remove freely
+      allow write: if isAdmin();
+      // A visitor may only append exactly one entry to `pending` on an
+      // OPEN, non-full slot — they can't touch status/supervisor/confirmed
+      allow update: if !isAdmin()
+        && resource.data.status == 'open'
+        && resource.data.confirmed.size() < 10
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.supervisor == resource.data.supervisor
+        && request.resource.data.confirmed == resource.data.confirmed
+        && request.resource.data.pending.size() == resource.data.pending.size() + 1;
+    }
+
+    // Supervisor-role applications
+    match /supervisorApps/{appId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Approved supervisors list (populates the "who's supervising" dropdown)
+    match /supervisors/{supId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
