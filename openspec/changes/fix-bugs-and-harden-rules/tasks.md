@@ -26,5 +26,5 @@
 
 ## 5. Deploy
 
-- [ ] 5.1 Commit on branch `fix-bugs-and-harden-rules`, push, and open a PR; verify the Vercel preview loads with no console errors
+- [x] 5.1 Commit on branch `fix-bugs-and-harden-rules`, push, and open a PR; verify the Vercel preview loads with no console errors
 - [ ] 5.2 With the user: delete the 2 legacy `cells` docs in the Firebase console, publish the new rules, then merge the PR; verify the live smoke test from the design's Migration Plan step 5 passes
