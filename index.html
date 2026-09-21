@@ -7,9 +7,9 @@
 <script>
   // Resolve the theme before first paint so there's no flash of the other one
   (function () {
-    var pref = 'auto';
-    try { pref = JSON.parse(localStorage.getItem('pr-theme')) || 'auto'; } catch (e) {}
-    var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    var pref = null;
+    try { pref = JSON.parse(localStorage.getItem('pr-theme')); } catch (e) {}
+    var dark = pref === 'dark' || (pref !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     var art = 'closeup';
     try { art = JSON.parse(localStorage.getItem('pr-art')) || 'closeup'; } catch (e) {}
@@ -314,6 +314,7 @@
   }
   .cell.closed { background: rgba(var(--glass-rgb), var(--glass-closed)); border: 1px dashed var(--line-strong); box-shadow: none; }
   .cell.req { background: rgba(var(--req-rgb), var(--glass-strong)); border-color: var(--req-line); }
+  .cell.in { background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1.5px solid var(--teal); }
   .cell-body { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
   .cell-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
   .meta { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -609,6 +610,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   let toastTimer = null;
   let lastNavHtml = '';      // skip re-writing the DOM when nothing changed
   let lastAppHtml = '';
+  let lastSidebarHtml = '';
   const detailsCache = {};   // requestId -> {instrument, note} (admin only)
   const detailsLoading = new Set();
 
@@ -627,7 +629,6 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
-    auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
     chart: '<path d="M4 19V10M12 19V5M20 19v-6"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
     pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
@@ -692,31 +693,23 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   }
   function getCell(ds, pid) { return normalizeCell(cells[cellKey(ds, pid)]); }
 
-  // ---------- theme ----------
-  const darkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
-  function themePref() { const p = store('pr-theme'); return p === 'light' || p === 'dark' ? p : 'auto'; }
-  function applyTheme() {
-    const pref = themePref();
-    const dark = pref === 'dark' || (pref === 'auto' && darkQuery && darkQuery.matches);
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    // Update the controls in place so nothing else re-renders (open forms keep their input)
-    nav.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === pref)));
+  // ---------- theme (Light / Dark) ----------
+  // No saved choice: start from the device setting once, then it's the visitor's call
+  function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function syncThemeControls() {
+    const t = currentTheme();
+    nav.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
     const cycle = nav.querySelector('.theme-cycle');
     if (cycle) {
-      cycle.innerHTML = icon(pref === 'light' ? 'sun' : pref === 'dark' ? 'moon' : 'auto');
-      cycle.setAttribute('aria-label', `Theme: ${pref === 'auto' ? 'auto (follows device)' : pref}. Change theme`);
+      cycle.innerHTML = icon(t === 'dark' ? 'moon' : 'sun');
+      cycle.setAttribute('aria-label', `Theme: ${t}. Switch to ${t === 'dark' ? 'light' : 'dark'}`);
     }
   }
-  function setTheme(pref) {
-    store('pr-theme', pref);
-    // Storage may be blocked; the in-memory choice still applies for this page view
-    if (themePref() !== pref) document.documentElement.setAttribute('data-theme', pref === 'dark' || (pref === 'auto' && darkQuery && darkQuery.matches) ? 'dark' : 'light');
-    else applyTheme();
-    nav.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeSet === pref)));
-  }
-  if (darkQuery) {
-    const onChange = () => { if (themePref() === 'auto') applyTheme(); };
-    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onChange); else darkQuery.addListener(onChange);
+  function setTheme(t) {
+    store('pr-theme', t);
+    // Only the attribute changes, so open forms keep their input
+    document.documentElement.setAttribute('data-theme', t);
+    syncThemeControls();
   }
 
   // ---------- background style (Close-up / Club wall / Poster) ----------
@@ -764,24 +757,26 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     if (e.key === 'Escape' && styleMenuOpen) closeStyleMenu(true);
   });
 
-  // ---------- this browser's own requests (shown as "Requested") ----------
+  // ---------- this browser's own requests ----------
+  // Visitors get an invisible anonymous Firebase id, which the rules use to allow
+  // one live request per browser per period. The request id is also remembered
+  // locally so a declined request can be shown as "Not accepted".
+  function myUid() { const u = auth.currentUser; return u && u.isAnonymous ? u.uid : null; }
   function myRequests() { const r = store('pr-requests'); return r && typeof r === 'object' ? r : {}; }
-  function isMine(cell, key) {
+  function myState(cell, key) {
+    const uid = myUid();
+    if (uid && cell.confirmed.some(p => p.uid === uid)) return 'in';
+    if (uid && cell.pending.some(p => p.uid === uid)) return 'requested';
     const id = myRequests()[key];
-    return !!id && cell.pending.some(p => p.id === id);
+    if (id && cell.declinedIds.includes(id)) return 'declined';
+    return '';
   }
-  // Forget requests that are no longer pending or no longer on screen
+  // Forget remembered requests for days that are no longer on screen
   function pruneMyRequests() {
     const mine = myRequests();
     const visible = new Set(getVisibleDays().map(dateStr));
     let changed = false;
-    Object.keys(mine).forEach(key => {
-      const ds = key.split('_')[0];
-      if (!visible.has(ds)) { delete mine[key]; changed = true; return; }
-      if (!(key in cells)) return;
-      const cell = normalizeCell(cells[key]);
-      if (!cell.pending.some(p => p.id === mine[key])) { delete mine[key]; changed = true; }
-    });
+    Object.keys(mine).forEach(key => { if (!visible.has(key.split('_')[0])) { delete mine[key]; changed = true; } });
     if (changed) store('pr-requests', mine);
   }
 
@@ -842,13 +837,13 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
 
   // ---------- render: nav ----------
   function renderNav() {
-    const pref = themePref();
+    const theme = currentTheme();
     const themeBtn = (value, label, ic) =>
-      `<button type="button" data-theme-set="${value}" aria-pressed="${pref === value}" aria-label="${label}" title="${label}">${icon(ic)}</button>`;
+      `<button type="button" data-theme-set="${value}" aria-pressed="${theme === value}" aria-label="${label}" title="${label}">${icon(ic)}</button>`;
     const themeControl = `
       <div class="style-pick"><button type="button" class="style-btn" aria-haspopup="true" aria-expanded="false" aria-label="Background style" title="Background style">${icon('image')}</button></div>
       <div class="theme-seg" role="group" aria-label="Theme">
-        ${themeBtn('light', 'Light theme', 'sun')}${themeBtn('dark', 'Dark theme', 'moon')}${themeBtn('auto', 'Auto theme (follows device)', 'auto')}
+        ${themeBtn('light', 'Light theme', 'sun')}${themeBtn('dark', 'Dark theme', 'moon')}
       </div>
       <button type="button" class="icon-btn theme-cycle"></button>`;
 
@@ -874,23 +869,19 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
         <div><div class="brand-title">Practice Room Schedule</div><div class="brand-eyebrow">KCM · Practice rooms</div></div>
       </div>
       <div class="nav-actions">${who}${extra}${themeControl}</div>`;
-    if (html === lastNavHtml) { applyTheme(); return; }
+    if (html === lastNavHtml) { syncThemeControls(); return; }
     lastNavHtml = html;
     styleMenuOpen = false;
     nav.innerHTML = html;
     nav.querySelector('.style-btn').onclick = () => { if (styleMenuOpen) closeStyleMenu(true); else openStyleMenu(); };
 
     nav.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => setTheme(b.dataset.themeSet));
-    nav.querySelector('.theme-cycle').onclick = () => {
-      const order = ['auto', 'light', 'dark'];
-      setTheme(order[(order.indexOf(themePref()) + 1) % order.length]);
-      applyTheme();
-    };
+    nav.querySelector('.theme-cycle').onclick = () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
     const signOut = document.getElementById('signOutBtn'); if (signOut) signOut.onclick = () => auth.signOut();
     const login = document.getElementById('adminLoginBtn'); if (login) login.onclick = openAdminLoginModal;
     const sup = document.getElementById('supApplyBtn'); if (sup) sup.onclick = openSupervisorAppModal;
     const side = document.getElementById('sidebarToggle'); if (side) side.onclick = () => { sidebarOpen = true; loadStats(); };
-    applyTheme();
+    syncThemeControls();
   }
 
   // ---------- render: hero ----------
@@ -987,7 +978,16 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
         action: ''
       };
     }
-    if (isMine(cell, key)) {
+    const mine = myState(cell, key);
+    if (mine === 'in') {
+      return {
+        cls: 'in',
+        body: `<div class="cell-row"><span class="pill open">${icon('check')}You’re in</span>${barsHtml(n, 'open')}</div>
+               <div class="meta"><b>Confirmed</b> · ${n} of ${CAPACITY}${sup}</div>`,
+        action: ''
+      };
+    }
+    if (mine === 'requested') {
       return {
         cls: 'req',
         body: `<div class="cell-row"><span class="pill req">${icon('clock')}Requested</span>${barsHtml(n, 'req')}</div>
@@ -1004,7 +1004,9 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     }
     return {
       cls: '',
-      body: `<div class="cell-row"><span class="pill open"><i></i>Open</span>${barsHtml(n, 'open')}</div><div class="meta"><b>${n} of ${CAPACITY}</b>${sup}</div>`,
+      body: mine === 'declined'
+        ? `<div class="cell-row"><span class="pill">${icon('x')}Not accepted</span>${barsHtml(n, 'open')}</div><div class="meta"><b>You can apply again</b> · ${n} of ${CAPACITY}</div>`
+        : `<div class="cell-row"><span class="pill open"><i></i>Open</span>${barsHtml(n, 'open')}</div><div class="meta"><b>${n} of ${CAPACITY}</b>${sup}</div>`,
       action: `<button type="button" class="btn apply" data-action="apply" data-ds="${ds}" data-pid="${period.id}" aria-label="Apply for ${escapeHtml(period.name)}, ${longDay(new Date(ds + 'T00:00:00'))}">Apply${icon('arrow')}</button>`
     };
   }
@@ -1016,6 +1018,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       <div class="legend" aria-label="Legend">
         <span><i style="background:var(--teal)"></i>Open</span>
         <span><i style="background:var(--brass)"></i>Requested</span>
+        <span><i style="background:var(--teal);outline:2px solid var(--teal);outline-offset:1px"></i>You’re in</span>
         <span><i style="background:var(--brick)"></i>Full</span>
         <span><i style="border:1.5px dashed var(--muted)"></i>Closed</span>
         <span><i style="background:var(--bar-off)"></i>Ended</span>
@@ -1119,13 +1122,24 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   // Admin changes run as transactions on the server's current copy of the cell,
   // so a stale local view can never overfill a period or drop someone's request
   const cellQueues = {};
+  const uidsOf = list => list.map(p => p.uid).filter(Boolean);
   function mutateCell(ds, pid, change) {
     const key = cellKey(ds, pid);
     const ref = cellsRef.doc(key);
     const run = () => db.runTransaction(async tx => {
       const snap = await tx.get(ref);
       const cur = normalizeCell(snap.exists ? snap.data() : null);
-      tx.set(ref, change(cur));
+      const next = change(cur);
+      // The rules check these to allow one live request per browser per period
+      next.pendingUids = uidsOf(next.pending);
+      next.confirmedUids = uidsOf(next.confirmed);
+      tx.set(ref, next);
+      return next;
+    }).then(next => {
+      // Show the admin's own change right away instead of waiting for the live listener
+      cells[key] = next;
+      render();
+      if (activeManage) activeManage.refresh();
     });
     // Chain onto the previous write for this period (whether it succeeded or not)
     const next = (cellQueues[key] || Promise.resolve()).then(run, run);
@@ -1189,20 +1203,45 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     if (cell.status !== 'open' || hasEnded(ds, period)) { showToast('This period is no longer open'); return false; }
     if (cell.confirmed.length >= CAPACITY) { showToast('This period just filled up'); return false; }
     const key = cellKey(ds, pid);
+    const state = myState(cell, key);
+    if (state === 'in') { showToast('You’re already in this period'); return false; }
+    if (state === 'requested') { showToast('You already asked for this period — wait for the admin'); return false; }
+    const lower = name.toLowerCase();
+    if ([...cell.pending, ...cell.confirmed].some(p => (p.name || '').trim().toLowerCase() === lower)) {
+      showToast('That name is already on this period'); return false;
+    }
+    const uid = await ensureVisitorId();
+    if (!uid) { showToast('Could not connect — please reload and try again'); return false; }
+    const FV = firebase.firestore.FieldValue;
     const detailsDoc = requestDetailsRef.doc();
     const batch = db.batch();
-    batch.set(detailsDoc, { cellId: key, name, instrument, note, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    batch.update(cellsRef.doc(key), { pending: firebase.firestore.FieldValue.arrayUnion({ id: detailsDoc.id, name }) });
+    batch.set(detailsDoc, { cellId: key, name, instrument, note, uid, createdAt: FV.serverTimestamp() });
+    batch.update(cellsRef.doc(key), { pending: FV.arrayUnion({ id: detailsDoc.id, name, uid }), pendingUids: FV.arrayUnion(uid) });
     try {
       await batch.commit();
       const mine = myRequests(); mine[key] = detailsDoc.id; store('pr-requests', mine);
       return true;
     } catch (e) {
       showToast(e.code === 'permission-denied'
-        ? 'This period just closed or filled up'
+        ? 'Could not send — the period may have closed or filled up, or you already asked for it'
         : 'Could not send request — ' + e.message);
       return false;
     }
+  }
+
+  // Visitors are signed in anonymously (no login screen) so the rules can tell browsers apart
+  let visitorIdPromise = null;
+  function ensureVisitorId() {
+    const u = auth.currentUser;
+    if (u && u.isAnonymous) return Promise.resolve(u.uid);
+    if (u) return Promise.resolve(null);   // the admin doesn't apply
+    if (!visitorIdPromise) {
+      visitorIdPromise = auth.signInAnonymously()
+        .then(cred => cred.user.uid)
+        .catch(e => { console.warn('Anonymous sign-in failed', e.code); return null; })
+        .finally(() => { visitorIdPromise = null; });
+    }
+    return visitorIdPromise;
   }
 
   // Admin only: fetch instrument/reason for the requests shown in the Manage window
@@ -1503,12 +1542,10 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   }
 
   function renderSidebar() {
-    const existing = document.getElementById('adminSidebarOverlay');
-    const prevScroll = existing ? existing.querySelector('.sidebar').scrollTop : 0;
-    const hadFocus = !!existing && existing.contains(document.activeElement);
-    if (existing) existing.remove();
+    let overlay = document.getElementById('adminSidebarOverlay');
     renderNavBadgeOnly();
-    if (!isAdmin || !sidebarOpen) return;
+    if (!isAdmin || !sidebarOpen) { if (overlay) overlay.remove(); return; }
+    const isNew = !overlay;
 
     let statsHtml;
     if (stats && typeof stats === 'object') {
@@ -1543,26 +1580,32 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
           </div>
         </div>`).join('');
 
-    const overlay = document.createElement('div');
-    overlay.id = 'adminSidebarOverlay';
-    overlay.innerHTML = `
-      <div class="sidebar-overlay" id="sbOverlayBg"></div>
-      <aside class="sidebar" role="dialog" aria-modal="true" aria-label="Admin panel">
+    const inner = `
         <div class="sidebar-head"><h2>Admin panel</h2><button type="button" class="icon-btn" id="sbClose" aria-label="Close admin panel">${icon('x')}</button></div>
         <div class="sec-title">Statistics</div>
         ${statsHtml}
         <div class="sec-title">Supervisor applications</div>
         ${appsHtml}
         <div class="sec-title">Approved supervisors</div>
-        ${supRows}
-      </aside>`;
-    document.body.appendChild(overlay);
-    overlay.querySelector('.sidebar').scrollTop = prevScroll;
+        ${supRows}`;
+    if (isNew) {
+      overlay = document.createElement('div');
+      overlay.id = 'adminSidebarOverlay';
+      overlay.innerHTML = `<div class="sidebar-overlay" id="sbOverlayBg"></div><aside class="sidebar" role="dialog" aria-modal="true" aria-label="Admin panel"></aside>`;
+      document.body.appendChild(overlay);
+    }
+    const aside = overlay.querySelector('.sidebar');
+    if (!isNew && lastSidebarHtml === inner) return;   // nothing changed
+    const hadFocus = aside.contains(document.activeElement);
+    const prevScroll = aside.scrollTop;
+    lastSidebarHtml = inner;
+    aside.innerHTML = inner;
+    aside.scrollTop = prevScroll;
     const closeSidebar = () => { sidebarOpen = false; renderSidebar(); const t = document.getElementById('sidebarToggle'); if (t) t.focus(); };
     document.getElementById('sbClose').onclick = closeSidebar;
     document.getElementById('sbOverlayBg').onclick = closeSidebar;
-    // Keep keyboard focus inside the panel when it redraws (e.g. stats finish loading)
-    if (!existing || hadFocus) document.getElementById('sbClose').focus();
+    // Keep keyboard focus inside the panel when its contents update
+    if (isNew || hadFocus) document.getElementById('sbClose').focus();
 
     overlay.querySelectorAll('button[data-supaction]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -1647,13 +1690,28 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     render();
     renderSidebar();
     if (!isAdmin && firstCheck) maybeShowRulesNotice();
+    // Give every visitor browser its anonymous id up front, so "You're in" / "Requested" show on load
+    if (!user) ensureVisitorId();
   });
 
   lastMinute = minuteKey();
   subscribeCells();
   render();
   setInterval(tick, TICK_MS);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  // Phones and background tabs silently drop the live connection. When the page comes
+  // back, force a fresh connection so changes show without a manual reload.
+  let hiddenAt = 0;
+  function reconnect() {
+    db.disableNetwork().then(() => db.enableNetwork()).catch(() => {});
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (hiddenAt && Date.now() - hiddenAt > 5000) reconnect();
+    hiddenAt = 0;
+    tick();
+  });
+  window.addEventListener('online', reconnect);
+  window.addEventListener('pageshow', e => { if (e.persisted) reconnect(); });
 })();
 </script>
 </body>

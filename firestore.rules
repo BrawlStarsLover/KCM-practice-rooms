@@ -14,13 +14,15 @@ service cloud.firestore {
       return /databases/$(database)/documents/requestDetails/$(reqId);
     }
 
-    // A public pending/confirmed entry: just an id and a name, nothing private
+    // A public pending entry from a visitor: id, name and the visitor's own
+    // anonymous uid (so each browser can only have one live request per period)
     function validEntry(e) {
       return e is map
-        && e.keys().hasOnly(['id', 'name'])
-        && e.keys().hasAll(['id', 'name'])
+        && e.keys().hasOnly(['id', 'name', 'uid'])
+        && e.keys().hasAll(['id', 'name', 'uid'])
         && isStr(e.id, 8, 40)
-        && isStr(e.name, 1, 60);
+        && isStr(e.name, 1, 60)
+        && e.uid == request.auth.uid;
     }
 
     // The appended entry must come with a brand-new details doc for this same
@@ -30,7 +32,20 @@ service cloud.firestore {
         && !exists(detailsPath(e.id))
         && existsAfter(detailsPath(e.id))
         && getAfter(detailsPath(e.id)).data.cellId == cellId
-        && getAfter(detailsPath(e.id)).data.name == e.name;
+        && getAfter(detailsPath(e.id)).data.name == e.name
+        && getAfter(detailsPath(e.id)).data.uid == e.uid;
+    }
+
+    // One live request per browser per period: not already waiting, not already in.
+    // pendingUids / confirmedUids mirror the uids in pending / confirmed.
+    function uidAppendOk() {
+      let beforeUids = resource.data.get('pendingUids', []);
+      let afterUids = request.resource.data.get('pendingUids', []);
+      return !(request.auth.uid in beforeUids)
+        && !(request.auth.uid in resource.data.get('confirmedUids', []))
+        && afterUids.size() == beforeUids.size() + 1
+        && afterUids.hasAll(beforeUids)
+        && request.auth.uid in afterUids;
     }
 
     // A visitor may only append exactly one entry to the end of `pending` on an
@@ -39,10 +54,12 @@ service cloud.firestore {
     function isVisitorAppend(cellId) {
       let before = resource.data.pending;
       let after = request.resource.data.pending;
-      return resource.data.status == 'open'
+      return request.auth != null
+        && resource.data.status == 'open'
         && resource.data.confirmed.size() < 10
         && before.size() < 50
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pending'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pending', 'pendingUids'])
+        && uidAppendOk()
         && after is list
         && after.size() == before.size() + 1
         // (an empty slice list[0:0] throws in rules, so the first applicant skips the check)
@@ -52,9 +69,11 @@ service cloud.firestore {
 
     function validDetails(reqId) {
       let d = request.resource.data;
-      return isStr(reqId, 8, 40)
-        && d.keys().hasOnly(['cellId', 'name', 'instrument', 'note', 'createdAt'])
-        && d.keys().hasAll(['cellId', 'name', 'instrument', 'note', 'createdAt'])
+      return request.auth != null
+        && isStr(reqId, 8, 40)
+        && d.keys().hasOnly(['cellId', 'name', 'instrument', 'note', 'createdAt', 'uid'])
+        && d.keys().hasAll(['cellId', 'name', 'instrument', 'note', 'createdAt', 'uid'])
+        && d.uid == request.auth.uid
         && isStr(d.cellId, 4, 40)
         && isStr(d.name, 1, 60)
         && isStr(d.instrument, 0, 40)
@@ -62,12 +81,13 @@ service cloud.firestore {
         && d.createdAt == request.time
         && existsAfter(/databases/$(database)/documents/cells/$(d.cellId))
         && getAfter(/databases/$(database)/documents/cells/$(d.cellId)).data.pending
-             .hasAny([{'id': reqId, 'name': d.name}]);
+             .hasAny([{'id': reqId, 'name': d.name, 'uid': d.uid}]);
     }
 
     // Practice-room period slots (public). Each doc looks like:
     // { status: 'open'|'closed', supervisor: string,
-    //   pending: [{id, name}], confirmed: [{id, name}], declinedIds: [id] }
+    //   pending: [{id, name, uid}], confirmed: [{id, name, uid}], declinedIds: [id],
+    //   pendingUids: [uid], confirmedUids: [uid] }
     match /cells/{cellId} {
       allow read: if true;
       allow write: if isAdmin();
