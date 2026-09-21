@@ -6,28 +6,91 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == "TdvMfESAnahSxiSGdZvzOGEiAAV2";
     }
 
-    // Practice-room period slots. Each doc looks like:
-    // { status: 'open'|'closed', supervisor: string, pending: [...], confirmed: [...] }
+    function isStr(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+
+    function detailsPath(reqId) {
+      return /databases/$(database)/documents/requestDetails/$(reqId);
+    }
+
+    // A public pending/confirmed entry: just an id and a name, nothing private
+    function validEntry(e) {
+      return e is map
+        && e.keys().hasOnly(['id', 'name'])
+        && e.keys().hasAll(['id', 'name'])
+        && isStr(e.id, 8, 40)
+        && isStr(e.name, 1, 60);
+    }
+
+    // The appended entry must come with a brand-new details doc for this same
+    // cell and name, created in the same batch
+    function appendedEntryOk(cellId, e) {
+      return validEntry(e)
+        && !exists(detailsPath(e.id))
+        && existsAfter(detailsPath(e.id))
+        && getAfter(detailsPath(e.id)).data.cellId == cellId
+        && getAfter(detailsPath(e.id)).data.name == e.name;
+    }
+
+    // A visitor may only append exactly one entry to the end of `pending` on an
+    // OPEN, non-full slot — every existing entry stays as it was, and nothing
+    // else in the doc (status, supervisor, confirmed, declinedIds) changes
+    function isVisitorAppend(cellId) {
+      let before = resource.data.pending;
+      let after = request.resource.data.pending;
+      return resource.data.status == 'open'
+        && resource.data.confirmed.size() < 10
+        && before.size() < 50
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pending'])
+        && after is list
+        && after.size() == before.size() + 1
+        // (an empty slice list[0:0] throws in rules, so the first applicant skips the check)
+        && (before.size() == 0 || after[0:before.size()] == before)
+        && appendedEntryOk(cellId, after[before.size()]);
+    }
+
+    function validDetails(reqId) {
+      let d = request.resource.data;
+      return isStr(reqId, 8, 40)
+        && d.keys().hasOnly(['cellId', 'name', 'instrument', 'note', 'createdAt'])
+        && d.keys().hasAll(['cellId', 'name', 'instrument', 'note', 'createdAt'])
+        && isStr(d.cellId, 4, 40)
+        && isStr(d.name, 1, 60)
+        && isStr(d.instrument, 0, 40)
+        && isStr(d.note, 0, 200)
+        && d.createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/cells/$(d.cellId))
+        && getAfter(/databases/$(database)/documents/cells/$(d.cellId)).data.pending
+             .hasAny([{'id': reqId, 'name': d.name}]);
+    }
+
+    // Practice-room period slots (public). Each doc looks like:
+    // { status: 'open'|'closed', supervisor: string,
+    //   pending: [{id, name}], confirmed: [{id, name}], declinedIds: [id] }
     match /cells/{cellId} {
       allow read: if true;
-      // The admin can open/close/accept/decline/remove freely
       allow write: if isAdmin();
-      // A visitor may only append exactly one entry to `pending` on an
-      // OPEN, non-full slot — they can't touch status/supervisor/confirmed
-      allow update: if !isAdmin()
-        && resource.data.status == 'open'
-        && resource.data.confirmed.size() < 10
-        && request.resource.data.status == resource.data.status
-        && request.resource.data.supervisor == resource.data.supervisor
-        && request.resource.data.confirmed == resource.data.confirmed
-        && request.resource.data.pending.size() == resource.data.pending.size() + 1;
+      allow update: if !isAdmin() && isVisitorAppend(cellId);
+    }
+
+    // Private part of each request (instrument, reason) — admin eyes only.
+    // Visitors can create one only together with its pending entry.
+    match /requestDetails/{reqId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if isAdmin() || validDetails(reqId);
     }
 
     // Supervisor-role applications
     match /supervisorApps/{appId} {
-      allow read: if isAdmin();
-      allow create: if true;
-      allow update, delete: if isAdmin();
+      allow read, update, delete: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.keys().hasOnly(['name', 'message', 'ts'])
+        && request.resource.data.keys().hasAll(['name', 'message', 'ts'])
+        && isStr(request.resource.data.name, 1, 60)
+        && isStr(request.resource.data.message, 0, 200)
+        && request.resource.data.ts == request.time
+      );
     }
 
     // Approved supervisors list (populates the "who's supervising" dropdown)

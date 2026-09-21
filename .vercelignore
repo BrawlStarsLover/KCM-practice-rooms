@@ -1,0 +1,4 @@
+openspec/
+tests/
+.claude/
+firebase.json
