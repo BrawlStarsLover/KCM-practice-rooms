@@ -276,6 +276,7 @@
   .style-menu button[aria-pressed="true"] { border-color: var(--accent); background: var(--chip); }
   .style-menu .thumb { width: 40px; height: 48px; border-radius: 8px; flex-shrink: 0; background: var(--bg) center top / cover no-repeat; border: 1px solid var(--line); }
   .style-menu .check { margin-left: auto; color: var(--accent); }
+  .style-menu .genre-ico { width: 17px; height: 17px; margin-right: -4px; color: var(--muted); }
 
   /* ---------- hero ---------- */
   .hero { display: flex; flex-direction: column; gap: 18px; max-width: 660px; padding-top: 16px; }
@@ -670,7 +671,10 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
     chart: '<path d="M4 19V10M12 19V5M20 19v-6"/>',
-    genre: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+    // One symbol per music theme, shown on the Theme button
+    jazz: '<path d="M2 10.5h2M4 9v3"/><path d="M4 10.5h11"/><path d="M15 10.5 21 6v9z"/><path d="M8 10.5V7M10.5 10.5V7M13 10.5V7M7.3 7h1.4M9.8 7h1.4M12.3 7h1.4"/><path d="M6 10.5v3a2 2 0 0 0 2 2h5a2 2 0 0 0 2-2v-3"/>',
+    classical: '<circle cx="8" cy="18" r="4"/><path d="M12 18V2l7 4"/>',
+    rock: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
     pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/>'
   };
@@ -792,7 +796,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     menu.setAttribute('aria-label', 'Music theme');
     menu.innerHTML = '<div class="menu-title">Theme</div>' + GENRES.map(g =>
       `<button type="button" data-genre-set="${g.id}" aria-pressed="${g.id === current}">
-        <span class="thumb" style="background-image:url('img/${g.id}-phone.webp')"></span>${g.name}
+        <span class="thumb" style="background-image:url('img/${g.id}-phone.webp')"></span>${icon(g.id, 'genre-ico')}${g.name}
         ${g.id === current ? icon('check', 'check') : ''}</button>`).join('');
     wrap.appendChild(menu);
     styleMenuOpen = true;
@@ -892,7 +896,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     const themeBtn = (value, label, ic) =>
       `<button type="button" data-theme-set="${value}" aria-pressed="${theme === value}" aria-label="${label}" title="${label}">${icon(ic)}</button>`;
     const themeControl = `
-      <div class="style-pick"><button type="button" class="style-btn" aria-haspopup="true" aria-expanded="false" aria-label="Music theme: ${GENRES.find(g => g.id === currentGenre()).name}" title="Music theme">${icon('genre')}</button></div>
+      <div class="style-pick"><button type="button" class="style-btn" aria-haspopup="true" aria-expanded="false" aria-label="Music theme: ${GENRES.find(g => g.id === currentGenre()).name}" title="Music theme">${icon(currentGenre())}</button></div>
       <div class="theme-seg" role="group" aria-label="Theme">
         ${themeBtn('light', 'Light theme', 'sun')}${themeBtn('dark', 'Dark theme', 'moon')}
       </div>
