@@ -10,7 +10,9 @@
 - [x] 1.6 Contrast pass: visitor and admin, all 4 looks, page plus Apply/Manage window; verify 0 failures (1,864 checks)
 - [x] 1.7 Phone at 390 px for each theme: no sideways scroll, targets at least 44 px, one header row, correct phone background
 
+- [x] 1.8 Per-theme symbol on the Theme button and in the menu (trumpet / note / flame); verify three distinct icons and the button label for each theme
+
 ## 2. Ship
 
-- [ ] 2.1 Commit, push, open a PR; verify the Vercel preview builds
-- [ ] 2.2 With the owner's go-ahead, merge; verify the live site loads each theme
+- [x] 2.1 Commit, push, open a PR; verify the Vercel preview builds
+- [x] 2.2 With the owner's go-ahead, merge; verify the live site loads each theme

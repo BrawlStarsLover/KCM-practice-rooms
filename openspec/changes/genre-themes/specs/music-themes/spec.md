@@ -43,3 +43,10 @@ The page SHALL download only the web fonts of the active theme, and SHALL load a
 #### Scenario: Jazz visitor
 - **WHEN** a visitor opens the site in Jazz
 - **THEN** no Classical or Rock font files are requested
+
+### Requirement: Theme button shows the active theme's symbol
+The Theme button SHALL show a symbol for the active theme (a trumpet for Jazz, a music note for Classical, a flame for Rock), and SHALL update as soon as the theme changes. Its accessible name SHALL include the theme's name. Each entry in the Theme menu SHALL show the same symbol next to its name.
+
+#### Scenario: Switch to Rock
+- **WHEN** a visitor picks Rock
+- **THEN** the Theme button shows a flame and is announced as "Music theme: Rock"
