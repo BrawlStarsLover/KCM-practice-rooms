@@ -211,7 +211,7 @@
     -webkit-text-size-adjust: 100%; min-height: 100%; scroll-padding-top: 96px;
     background: var(--bg) var(--art) center top / cover no-repeat;
   }
-  body { margin: 0; min-height: 100vh; color: var(--ink); font-family: var(--body); font-size: var(--body-size); line-height: 1.45; }
+  body { margin: 0; min-height: 100vh; overflow-x: clip; color: var(--ink); font-family: var(--body); font-size: var(--body-size); line-height: 1.45; }
   button, input, textarea, select { font-family: inherit; }
   button { cursor: pointer; }
   button:disabled { opacity: 0.6; cursor: default; }
@@ -655,12 +655,15 @@
       nav.top {
         position: sticky; top: 0;
         animation: navShrink linear both; animation-timeline: scroll(root); animation-range: 0 120px;
-        clip-path: inset(0 -100vmax);
       }
-      @keyframes navShrink {
-        from { min-height: 88px; box-shadow: 0 0 0 100vmax transparent; background: transparent; }
-        to { min-height: 64px; box-shadow: 0 0 0 100vmax var(--bg); background: var(--bg); }
+      @keyframes navShrink { from { min-height: 88px; } to { min-height: 64px; } }
+      /* The solid bar behind the header, full window width; no clipping, so the theme menu can hang below */
+      nav.top::before {
+        content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc((100% - 100vw) / 2); right: calc((100% - 100vw) / 2);
+        background: var(--bg); pointer-events: none;
+        animation: navBar linear both; animation-timeline: scroll(root); animation-range: 0 120px;
       }
+      @keyframes navBar { from { opacity: 0; } to { opacity: 1; } }
     }
   }
 
@@ -717,7 +720,8 @@
   @media (max-width: 899px) and (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: scroll()) {
       /* Phones: the header wraps to two rows, so the wordmark row folds away as you scroll */
-      nav.top { top: 8px; clip-path: none; animation-name: navShrinkPhone; }
+      nav.top { top: 8px; animation-name: navShrinkPhone; }
+      nav.top::before { display: none; }
       @keyframes navShrinkPhone { from { min-height: 64px; row-gap: 8px; } to { min-height: 56px; row-gap: 0; } }
       .wordmark { display: block; overflow: hidden; animation: wordmarkFold linear both; animation-timeline: scroll(root); animation-range: 0 120px; }
       @keyframes wordmarkFold { from { max-height: 40px; opacity: 1; } to { max-height: 0; opacity: 0; } }
