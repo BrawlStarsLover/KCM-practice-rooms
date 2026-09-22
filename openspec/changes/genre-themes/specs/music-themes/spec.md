@@ -18,7 +18,7 @@ Each theme SHALL apply its own colour palette, typefaces, photo background, and 
 
 | | Jazz | Classical | Rock |
 |---|---|---|---|
-| Headline | "Find your groove, / take the stage." | "Find your tempo, / begin the overture." | "Plug in. / Turn it up." |
+| Headline | "Find your groove, / take the stage." | "Find your tempo, / begin the overture." | "Grab a room. / Turn it up." |
 | Now strip | "Now playing" | "Now performing" | "On stage now" |
 | Setlist | "This week's setlist" | "This week's programme" | "This week's gigs" |
 | Rules | "Before you head in" / "House rules" | "Before the downbeat" / "Etiquette" | "Before soundcheck" / "Backstage rules" |
