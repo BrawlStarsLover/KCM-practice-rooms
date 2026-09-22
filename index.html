@@ -4,118 +4,157 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Practice Room Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script>
+  // Each music theme brings its own typefaces; only the chosen theme's fonts are downloaded
+  window.GENRE_FONTS = {
+    jazz: 'family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Instrument+Sans:wght@400;500;600;700',
+    classical: 'family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Instrument+Sans:wght@400;500;600;700',
+    rock: 'family=Anton&family=Oswald:wght@500;600&family=Space+Grotesk:wght@400;500;600;700'
+  };
+  window.loadGenreFonts = function (genre) {
+    if (document.getElementById('fonts-' + genre)) return;
+    var l = document.createElement('link');
+    l.id = 'fonts-' + genre; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?' + window.GENRE_FONTS[genre] + '&display=swap';
+    document.head.appendChild(l);
+  };
   // Resolve the theme before first paint so there's no flash of the other one
   (function () {
     var pref = null;
     try { pref = JSON.parse(localStorage.getItem('pr-theme')); } catch (e) {}
     var dark = pref === 'dark' || (pref !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    var art = 'closeup';
-    try { art = JSON.parse(localStorage.getItem('pr-art')) || 'closeup'; } catch (e) {}
-    if (['closeup', 'club', 'poster'].indexOf(art) < 0) art = 'closeup';
-    document.documentElement.setAttribute('data-art', art);
+    var genre = 'jazz';
+    try { genre = JSON.parse(localStorage.getItem('pr-genre')) || 'jazz'; } catch (e) {}
+    if (['jazz', 'classical', 'rock'].indexOf(genre) < 0) genre = 'jazz';
+    document.documentElement.setAttribute('data-genre', genre);
+    window.loadGenreFonts(genre);
   })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ---------- theme tokens: "Matinee" (light) and "Late set" (dark) ---------- */
+  /* ---------- themes: Jazz (light "Matinee" / dark "Late set"), Classical, Rock ---------- */
   :root {
     color-scheme: light;
-    --bg: #F1E6D1;
-    --art: url('img/closeup-light.webp');
-    --art-phone: url('img/closeup-phone.webp');
-    --ink: #1C2230;
-    --ink-2: #434856;
-    --muted: #5A5E6B;
+    --bg: #0A0F1A;
+    --art: url('img/jazz.webp');
+    --art-phone: url('img/jazz-phone.webp');
+    --ink: #1C2230; --ink-2: #434856; --muted: #5A5E6B;
+    --on-bg: #F4ECDD; --on-bg-2: #D4CBBB; --on-bg-muted: #ABA496; --hero-accent: #E9B04A;
     --glass-rgb: 251, 246, 236;
-    --line: rgba(28, 34, 48, 0.14);
-    --line-strong: rgba(28, 34, 48, 0.32);
-    --input-line: rgba(28, 34, 48, 0.28);
-    --bar-off: rgba(28, 34, 48, 0.16);
-    --chip: rgba(28, 34, 48, 0.08);
+    --line: rgba(28, 34, 48, 0.14); --line-strong: rgba(28, 34, 48, 0.32); --input-line: rgba(28, 34, 48, 0.28);
+    --bar-off: rgba(28, 34, 48, 0.16); --chip: rgba(28, 34, 48, 0.08);
     --shadow: 0 10px 24px -18px rgba(28, 34, 48, 0.6);
-    --accent: #B23E26;
-    --gold: #D99A2B;
-    --gold-ink: #1C2230;
-    --apply-border: #1C2230;
+    --accent: #B23E26; --brand: #D99A2B;
+    --gold: #D99A2B; --gold-ink: #1C2230; --apply-border: #1C2230;
     --brass: #B07A1C;
-    --teal: #1F5C58;
-    --teal-ink: #1B5551;
-    --teal-soft: rgba(31, 92, 88, 0.13);
-    --brick: #C4462C;
-    --brick-ink: #A0371F;
-    --brick-soft: rgba(196, 70, 44, 0.14);
-    --brick-line: rgba(160, 55, 31, 0.45);
-    --req-rgb: 250, 229, 184;
-    --req-line: rgba(158, 106, 23, 0.55);
-    --req-ink: #714A0C;
-    --req-soft: rgba(217, 154, 43, 0.26);
-    --inv-bg: #1C2230;
-    --inv-ink: #FBF5EA;
-    --inv-accent: #E3A63A;
-    --mark-icon: #D99A2B;
-    --primary-bg: #1C2230;
-    --primary-ink: #FBF5EA;
-    --modal-bg: #FBF5EA;
-    --input-bg: #FFFFFF;
-    --scrim: rgba(22, 26, 36, 0.52);
-    --glass: 0.74;
-    --glass-strong: 0.88;
-    --glass-closed: 0.37;
-    --blur: 7px;
+    --teal: #1F5C58; --teal-ink: #1B5551; --teal-soft: rgba(31, 92, 88, 0.13);
+    --brick: #C4462C; --brick-ink: #A0371F; --brick-soft: rgba(196, 70, 44, 0.14); --brick-line: rgba(160, 55, 31, 0.45);
+    --req-rgb: 250, 229, 184; --req-line: rgba(158, 106, 23, 0.55); --req-ink: #714A0C; --req-soft: rgba(217, 154, 43, 0.26);
+    --inv-bg: #1C2230; --inv-ink: #FBF5EA;
+    --mark-bg: #D99A2B; --mark-icon: #1C2230;
+    --today-bg: #1C2230; --today-ink: #FBF5EA; --tag-bg: #D99A2B; --tag-ink: #1C2230;
+    --np-box: #1C2230; --np-bar: #D99A2B;
+    --rules-bg: #D99A2B; --rules-ink: #1C2230; --rules-accent: #6B2412; --rules-eyebrow: var(--rules-accent); --rules-title-style: italic;
+    --toast-icon: #D99A2B;
+    --primary-bg: var(--inv-bg); --primary-ink: var(--inv-ink);
+    --modal-bg: #FBF5EA; --input-bg: #FFFFFF; --scrim: rgba(22, 26, 36, 0.52);
+    --glass: 0.92; --glass-strong: 0.96; --glass-closed: 0.5; --blur: 7px;
     --display: 'Fraunces', Georgia, serif;
     --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --numeral: 'Bebas Neue', 'Oswald', Impact, sans-serif;
+    --h1-font: var(--display); --h1-min: 40px; --h1-max: 70px; --h1-weight: 600; --h1-ls: -0.025em; --h1-lh: 1;
+    --h1-transform: none; --h1-em-style: italic; --h1-em-weight: 500;
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #111723;
-    --art: url('img/closeup-dark.webp');
-    --art-phone: url('img/closeup-phone-dark.webp');
-    --ink: #EFE5D1;
-    --ink-2: #D3CAB8;
-    --muted: #AEA697;
+    --ink: #EFE5D1; --ink-2: #D3CAB8; --muted: #AEA697;
+    --on-bg: #EFE5D1; --on-bg-2: #D3CAB8; --on-bg-muted: #AEA697; --hero-accent: #E9A23B;
     --glass-rgb: 17, 23, 35;
-    --line: rgba(239, 229, 209, 0.15);
-    --line-strong: rgba(239, 229, 209, 0.3);
-    --input-line: rgba(239, 229, 209, 0.3);
-    --bar-off: rgba(239, 229, 209, 0.2);
-    --chip: rgba(239, 229, 209, 0.09);
+    --line: rgba(239, 229, 209, 0.15); --line-strong: rgba(239, 229, 209, 0.3); --input-line: rgba(239, 229, 209, 0.3);
+    --bar-off: rgba(239, 229, 209, 0.2); --chip: rgba(239, 229, 209, 0.09);
     --shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.85);
-    --accent: #EE8B6B;
-    --gold: #E0A93B;
-    --gold-ink: #111723;
-    --apply-border: #E0A93B;
+    --accent: #EE8B6B; --brand: #E0A93B;
+    --gold: #E0A93B; --gold-ink: #111723; --apply-border: #E0A93B;
     --brass: #E0A93B;
-    --teal: #8AD3C6;
-    --teal-ink: #8AD3C6;
-    --teal-soft: rgba(138, 211, 198, 0.15);
-    --brick: #E66D4F;
-    --brick-ink: #F4987D;
-    --brick-soft: rgba(201, 85, 58, 0.24);
-    --brick-line: rgba(244, 152, 125, 0.5);
-    --req-rgb: 56, 43, 20;
-    --req-line: rgba(224, 169, 59, 0.55);
-    --req-ink: #F5C96E;
-    --req-soft: rgba(224, 169, 59, 0.2);
-    --inv-bg: #EFE5D1;
-    --inv-ink: #111723;
-    --inv-accent: #B23E26;
-    --mark-icon: #B23E26;
-    --primary-bg: #E0A93B;
-    --primary-ink: #111723;
-    --modal-bg: #171E2C;
-    --input-bg: #0E131D;
-    --scrim: rgba(5, 7, 12, 0.62);
+    --teal: #8AD3C6; --teal-ink: #8AD3C6; --teal-soft: rgba(138, 211, 198, 0.15);
+    --brick: #E66D4F; --brick-ink: #F4987D; --brick-soft: rgba(201, 85, 58, 0.24); --brick-line: rgba(244, 152, 125, 0.5);
+    --req-rgb: 56, 43, 20; --req-line: rgba(224, 169, 59, 0.55); --req-ink: #F5C96E; --req-soft: rgba(224, 169, 59, 0.2);
+    --inv-bg: #EFE5D1; --inv-ink: #111723;
+    --mark-bg: #E0A93B; --mark-icon: #111723;
+    --today-bg: #E0A93B; --today-ink: #111723; --tag-bg: #111723; --tag-ink: #F5C96E;
+    --np-box: #E0A93B; --np-bar: #111723;
+    --rules-bg: #EFE5D1; --rules-ink: #111723; --rules-accent: #B23E26;
+    --toast-icon: #B23E26;
+    --modal-bg: #171E2C; --input-bg: #0E131D; --scrim: rgba(5, 7, 12, 0.62);
+    --glass: 0.74; --glass-strong: 0.88; --glass-closed: 0.37;
   }
-  /* background styles from the design: Close-up (default), Club wall, Poster */
-  :root[data-art="club"] { --art: url('img/club-light.webp'); --art-phone: url('img/club-phone.webp'); }
-  :root[data-art="club"][data-theme="dark"] { --art: url('img/club-dark.webp'); --art-phone: url('img/club-phone-dark.webp'); }
-  :root[data-art="poster"] { --art: url('img/poster-light.webp'); --art-phone: url('img/poster-phone.webp'); }
-  :root[data-art="poster"][data-theme="dark"] { --art: url('img/poster-dark.webp'); --art-phone: url('img/poster-phone-dark.webp'); }
+  :root[data-genre="classical"] {
+    color-scheme: light;
+    --bg: #120A0B;
+    --art: url('img/classical.webp');
+    --art-phone: url('img/classical-phone.webp');
+    --ink: #1E1616; --ink-2: #4A3F3C; --muted: #65574F;
+    --on-bg: #F3EBDD; --on-bg-2: #D8CCBA; --on-bg-muted: #B3A594; --hero-accent: #E2C07A;
+    --glass-rgb: 247, 240, 228;
+    --line: rgba(30, 22, 22, 0.14); --line-strong: rgba(30, 22, 22, 0.32); --input-line: rgba(30, 22, 22, 0.28);
+    --bar-off: rgba(30, 22, 22, 0.16); --chip: rgba(30, 22, 22, 0.08);
+    --shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.7);
+    --accent: #7A1F2B; --brand: #7A1F2B;
+    --gold: #7A1F2B; --gold-ink: #F7F0E4; --apply-border: #7A1F2B;
+    --brass: #A8812E;
+    --teal: #2B5646; --teal-ink: #2B5646; --teal-soft: rgba(43, 86, 70, 0.13);
+    --brick: #8A2330; --brick-ink: #8A2330; --brick-soft: rgba(138, 35, 48, 0.13); --brick-line: rgba(138, 35, 48, 0.45);
+    --req-rgb: 246, 232, 200; --req-line: rgba(150, 115, 45, 0.55); --req-ink: #654B12; --req-soft: rgba(201, 164, 92, 0.3);
+    --inv-bg: #1E1616; --inv-ink: #F7F0E4;
+    --mark-bg: #7A1F2B; --mark-icon: #F7F0E4;
+    --today-bg: #7A1F2B; --today-ink: #F7F0E4; --tag-bg: #C9A45C; --tag-ink: #1E1616;
+    --np-box: #7A1F2B; --np-bar: #F7F0E4;
+    --rules-bg: #7A1F2B; --rules-ink: #F7F0E4; --rules-accent: #E2C07A; --rules-title-style: italic;
+    --toast-icon: #E2C07A;
+    --modal-bg: #F7F0E4; --input-bg: #FFFDF8; --scrim: rgba(10, 5, 6, 0.6);
+    --glass: 0.86; --glass-strong: 0.97; --glass-closed: 0.43;
+    --display: 'Cormorant Garamond', Georgia, serif;
+    --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --numeral: 'Cinzel', Georgia, serif;
+    --h1-font: var(--display); --h1-min: 46px; --h1-max: 82px; --h1-weight: 600; --h1-ls: -0.01em; --h1-lh: 0.95;
+    --h1-transform: none; --h1-em-style: italic; --h1-em-weight: 500;
+  }
+  :root[data-genre="rock"] {
+    color-scheme: dark;
+    --bg: #0B0B0C;
+    --art: url('img/rock.webp');
+    --art-phone: url('img/rock-phone.webp');
+    --ink: #F4F2EE; --ink-2: #DAD6CF; --muted: #A7A29A;
+    --on-bg: #F4F2EE; --on-bg-2: #DAD6CF; --on-bg-muted: #A7A29A; --hero-accent: #FF4A3D;
+    --glass-rgb: 16, 16, 18;
+    --line: rgba(255, 255, 255, 0.14); --line-strong: rgba(255, 255, 255, 0.3); --input-line: rgba(255, 255, 255, 0.3);
+    --bar-off: rgba(255, 255, 255, 0.18); --chip: rgba(255, 255, 255, 0.08);
+    --shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.9);
+    --accent: #FF5A4E; --brand: #D42A22;
+    --gold: #D42A22; --gold-ink: #FFFFFF; --apply-border: #D42A22;
+    --brass: #FFD84A;
+    --teal: #72E0A8; --teal-ink: #72E0A8; --teal-soft: rgba(114, 224, 168, 0.14);
+    --brick: #FF4A3D; --brick-ink: #FF8077; --brick-soft: rgba(212, 42, 34, 0.26); --brick-line: rgba(255, 128, 119, 0.5);
+    --req-rgb: 38, 32, 8; --req-line: rgba(255, 216, 74, 0.5); --req-ink: #FFD84A; --req-soft: rgba(255, 216, 74, 0.16);
+    --inv-bg: #F4F2EE; --inv-ink: #0B0B0C;
+    --mark-bg: #D42A22; --mark-icon: #FFFFFF;
+    --today-bg: #D42A22; --today-ink: #FFFFFF; --tag-bg: #0B0B0C; --tag-ink: #FFD84A;
+    --np-box: #D42A22; --np-bar: #FFFFFF;
+    --rules-bg: #D42A22; --rules-ink: #FFFFFF; --rules-accent: #0B0B0C; --rules-eyebrow: #FFFFFF; --rules-title-style: normal;
+    --toast-icon: #0B0B0C;
+    --modal-bg: #141416; --input-bg: #0B0B0C; --scrim: rgba(0, 0, 0, 0.7);
+    --glass: 0.76; --glass-strong: 0.9; --glass-closed: 0.38;
+    --display: 'Oswald', 'Arial Narrow', sans-serif;
+    --body: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --numeral: 'Anton', 'Oswald', Impact, sans-serif;
+    --h1-font: 'Anton', 'Oswald', Impact, sans-serif; --h1-min: 50px; --h1-max: 92px; --h1-weight: 400; --h1-ls: 0.01em; --h1-lh: 0.92;
+    --h1-transform: uppercase; --h1-em-style: normal; --h1-em-weight: 400;
+  }
+  /* Light/Dark only exists for Jazz */
+  :root:not([data-genre="jazz"]) .theme-seg, :root:not([data-genre="jazz"]) .theme-cycle { display: none !important; }
   @media (prefers-reduced-transparency: reduce) {
     :root { --glass: 0.96; --glass-strong: 0.97; --glass-closed: 0.9; --blur: 0px; }
   }
@@ -185,12 +224,12 @@
   nav.top { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 10px 0; }
   .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .brand-mark {
-    width: 44px; height: 44px; border-radius: 50%; background: var(--inv-bg); color: var(--mark-icon);
+    width: 44px; height: 44px; border-radius: 50%; background: var(--mark-bg); color: var(--mark-icon);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .brand-mark .ico { width: 20px; height: 20px; }
-  .brand-title { font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.15; }
-  .brand-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .brand-title { font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.15; color: var(--on-bg); }
+  .brand-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--on-bg-muted); }
   .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
   .who {
     display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 5px 0 16px; border-radius: 999px;
@@ -245,29 +284,30 @@
     border-radius: 999px; background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line);
     font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
   }
-  .tag .dot { width: 7px; height: 7px; background: var(--gold); }
+  .tag .dot { width: 7px; height: 7px; background: var(--brand); }
   h1.headline {
-    margin: 0; font-family: var(--display); font-size: clamp(40px, 6vw, 70px); line-height: 1.0; font-weight: 600; letter-spacing: -0.025em;
+    margin: 0; font-family: var(--h1-font); font-size: clamp(var(--h1-min), 6vw, var(--h1-max)); line-height: var(--h1-lh);
+    font-weight: var(--h1-weight); letter-spacing: var(--h1-ls); text-transform: var(--h1-transform); color: var(--on-bg);
   }
-  h1.headline em { font-style: italic; font-weight: 500; color: var(--accent); }
-  .lede { margin: 0; max-width: 560px; font-size: 18px; line-height: 1.55; color: var(--ink-2); }
+  h1.headline em { font-style: var(--h1-em-style); font-weight: var(--h1-em-weight); color: var(--hero-accent); }
+  .lede { margin: 0; max-width: 560px; font-size: 18px; line-height: 1.55; color: var(--on-bg-2); }
   .now {
     align-self: flex-start; display: flex; align-items: center; gap: 16px; padding: 12px 20px 12px 12px; border-radius: 18px;
     background: rgba(var(--glass-rgb), var(--glass-strong)); border: 1px solid var(--line); box-shadow: var(--shadow);
     -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); max-width: 100%;
   }
   .now-icon {
-    width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--inv-bg);
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--np-box);
     display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding-bottom: 12px;
   }
-  .now-icon span { width: 4px; border-radius: 2px; background: var(--mark-icon); }
+  .now-icon span { width: 4px; border-radius: 2px; background: var(--np-bar); }
   .now-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
   .now-title { font-size: 16px; font-weight: 600; }
   .now-title span { font-weight: 500; color: var(--muted); }
   .now-meter { display: flex; flex-direction: column; gap: 7px; width: 132px; flex-shrink: 0; }
   .now-meter .left { font-size: 12.5px; font-weight: 600; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
   .track { height: 6px; border-radius: 3px; background: var(--bar-off); overflow: hidden; }
-  .track div { height: 6px; border-radius: 3px; background: var(--gold); }
+  .track div { height: 6px; border-radius: 3px; background: var(--brand); }
 
   /* ---------- setlist ---------- */
   .setlist { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; }
@@ -293,11 +333,11 @@
   }
   .dhead .dname { font-family: var(--numeral); font-size: 34px; line-height: 1; letter-spacing: 0.04em; }
   .dhead .ddate { font-size: 15px; font-weight: 600; color: var(--ink-2); }
-  .dhead.today { background: var(--inv-bg); border-color: var(--inv-bg); color: var(--inv-ink); }
-  .dhead.today .ddate { color: var(--inv-ink); }
+  .dhead.today { background: var(--today-bg); border-color: var(--today-bg); color: var(--today-ink); }
+  .dhead.today .ddate { color: var(--today-ink); }
   .today-tag {
     margin-left: auto; display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: 999px;
-    background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    background: var(--tag-bg); color: var(--tag-ink); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   }
   .prow {
     display: flex; align-items: center; gap: 12px; padding: 0 14px; border-radius: 14px;
@@ -366,12 +406,12 @@
   /* ---------- house rules ---------- */
   .rules {
     margin-top: 40px; display: grid; grid-template-columns: 200px repeat(3, minmax(0, 1fr)); gap: 24px 32px; align-items: center;
-    padding: 26px 32px; border-radius: 20px; background: var(--inv-bg); color: var(--inv-ink); scroll-margin-top: 24px;
+    padding: 26px 32px; border-radius: 20px; background: var(--rules-bg); color: var(--rules-ink); scroll-margin-top: 24px;
   }
-  .rules .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--inv-accent); }
-  .rules h2 { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 500; font-style: italic; }
+  .rules .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rules-eyebrow); }
+  .rules h2 { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 500; font-style: var(--rules-title-style); }
   .rule { display: flex; align-items: flex-start; gap: 14px; }
-  .rule .num { font-family: var(--numeral); font-size: 40px; line-height: 0.9; color: var(--inv-accent); }
+  .rule .num { font-family: var(--numeral); font-size: 40px; line-height: 0.9; color: var(--rules-accent); min-width: 1.4em; flex-shrink: 0; }
   .rule p { margin: 0; font-size: 15px; line-height: 1.5; }
 
   /* ---------- modals ---------- */
@@ -478,7 +518,7 @@
     box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
-  .toast .ico { color: var(--mark-icon); }
+  .toast .ico { color: var(--toast-icon); }
 
   /* ---------- responsive ---------- */
   @media (max-width: 1200px) {
@@ -630,7 +670,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
     chart: '<path d="M4 19V10M12 19V5M20 19v-6"/>',
-    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+    genre: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
     pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/>'
   };
@@ -712,17 +752,29 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     syncThemeControls();
   }
 
-  // ---------- background style (Close-up / Club wall / Poster) ----------
-  const ART_STYLES = [
-    { id: 'closeup', name: 'Close-up' },
-    { id: 'club', name: 'Club wall' },
-    { id: 'poster', name: 'Poster' }
+  // ---------- music theme (Jazz / Classical / Rock) ----------
+  const GENRES = [
+    { id: 'jazz', name: 'Jazz' },
+    { id: 'classical', name: 'Classical' },
+    { id: 'rock', name: 'Rock' }
   ];
+  // Wording that changes with the theme (from the design boards)
+  const GENRE_COPY = {
+    jazz: { h1a: 'Pick a period,', h1b: 'take the stage.', now: 'Now playing', setlist: 'This week’s setlist', pick: 'Pick any open period to apply',
+            rulesEyebrow: 'Before you head in', rulesTitle: 'House rules', nums: ['01', '02', '03'] },
+    classical: { h1a: 'Pick a period,', h1b: 'begin the overture.', now: 'Now performing', setlist: 'This week’s programme', pick: 'Choose any open period to apply',
+            rulesEyebrow: 'Before the downbeat', rulesTitle: 'Etiquette', nums: ['I', 'II', 'III'] },
+    rock: { h1a: 'Pick a period.', h1b: 'Turn it up.', now: 'On stage now', setlist: 'This week’s gigs', pick: 'Grab any open period',
+            rulesEyebrow: 'Before soundcheck', rulesTitle: 'Backstage rules', nums: ['01', '02', '03'] }
+  };
   let styleMenuOpen = false;
-  function artPref() { const a = store('pr-art'); return ART_STYLES.some(x => x.id === a) ? a : 'closeup'; }
-  function setArt(id) {
-    store('pr-art', id);
-    document.documentElement.setAttribute('data-art', id);
+  function currentGenre() { const g = document.documentElement.getAttribute('data-genre'); return GENRE_COPY[g] ? g : 'jazz'; }
+  function copy() { return GENRE_COPY[currentGenre()]; }
+  function setGenre(id) {
+    store('pr-genre', id);
+    window.loadGenreFonts(id);
+    document.documentElement.setAttribute('data-genre', id);
+    render();   // headline and section names change with the theme
   }
   function closeStyleMenu(focusButton) {
     const menu = nav.querySelector('.style-menu');
@@ -733,20 +785,19 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   }
   function openStyleMenu() {
     const wrap = nav.querySelector('.style-pick');
-    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const current = document.documentElement.getAttribute('data-art') || artPref();
+    const current = currentGenre();
     const menu = document.createElement('div');
     menu.className = 'style-menu';
     menu.setAttribute('role', 'group');
-    menu.setAttribute('aria-label', 'Background style');
-    menu.innerHTML = '<div class="menu-title">Background</div>' + ART_STYLES.map(a =>
-      `<button type="button" data-art-set="${a.id}" aria-pressed="${a.id === current}">
-        <span class="thumb" style="background-image:url('img/${a.id}-${dark ? 'phone-dark' : 'phone'}.webp')"></span>${a.name}
-        ${a.id === current ? icon('check', 'check') : ''}</button>`).join('');
+    menu.setAttribute('aria-label', 'Music theme');
+    menu.innerHTML = '<div class="menu-title">Theme</div>' + GENRES.map(g =>
+      `<button type="button" data-genre-set="${g.id}" aria-pressed="${g.id === current}">
+        <span class="thumb" style="background-image:url('img/${g.id}-phone.webp')"></span>${g.name}
+        ${g.id === current ? icon('check', 'check') : ''}</button>`).join('');
     wrap.appendChild(menu);
     styleMenuOpen = true;
     nav.querySelector('.style-btn').setAttribute('aria-expanded', 'true');
-    menu.querySelectorAll('[data-art-set]').forEach(b => b.onclick = () => { setArt(b.dataset.artSet); closeStyleMenu(true); });
+    menu.querySelectorAll('[data-genre-set]').forEach(b => b.onclick = () => { closeStyleMenu(false); setGenre(b.dataset.genreSet); const btn = nav.querySelector('.style-btn'); if (btn) btn.focus(); });
     const pressed = menu.querySelector('[aria-pressed="true"]');
     if (pressed) pressed.focus();
   }
@@ -841,7 +892,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     const themeBtn = (value, label, ic) =>
       `<button type="button" data-theme-set="${value}" aria-pressed="${theme === value}" aria-label="${label}" title="${label}">${icon(ic)}</button>`;
     const themeControl = `
-      <div class="style-pick"><button type="button" class="style-btn" aria-haspopup="true" aria-expanded="false" aria-label="Background style" title="Background style">${icon('image')}</button></div>
+      <div class="style-pick"><button type="button" class="style-btn" aria-haspopup="true" aria-expanded="false" aria-label="Music theme: ${GENRES.find(g => g.id === currentGenre()).name}" title="Music theme">${icon('genre')}</button></div>
       <div class="theme-seg" role="group" aria-label="Theme">
         ${themeBtn('light', 'Light theme', 'sun')}${themeBtn('dark', 'Dark theme', 'moon')}
       </div>
@@ -896,7 +947,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
       const s = at(ds, p.start), e = at(ds, p.end);
       if (s <= now && now < e) {
         const left = Math.ceil((e - now) / 60000);
-        return { label: 'Now playing', period: p, cell, right: `${left} min left`, pct: Math.round((now - s) / (e - s) * 100) };
+        return { label: copy().now, period: p, cell, right: `${left} min left`, pct: Math.round((now - s) / (e - s) * 100) };
       }
       if (now < s) {
         const inMin = Math.ceil((s - now) / 60000);
@@ -924,7 +975,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     return `
       <section class="hero">
         <span class="tag"><span class="dot"></span>${longDay(days[0])} – ${longDay(days[days.length - 1])} · Next three weekdays</span>
-        <h1 class="headline">Pick a period,<br><em>take the stage.</em></h1>
+        <h1 class="headline">${copy().h1a}<br><em>${copy().h1b}</em></h1>
         <p class="lede">${isAdmin
           ? 'Open a period, review requests, keep the room full but not over.'
           : `Every open period fits ${CAPACITY} players. Send a request, and you’re in once the admin confirms it.`}</p>
@@ -1056,8 +1107,8 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
     return `
       <section class="setlist" aria-labelledby="setlistTitle">
         <div class="setlist-head">
-          <div class="setlist-title"><h2 id="setlistTitle">This week’s setlist</h2>
-            <span>${isAdmin ? 'Open a period, review requests, keep the room full but not over' : 'Pick any open period to apply'}</span></div>
+          <div class="setlist-title"><h2 id="setlistTitle">${copy().setlist}</h2>
+            <span>${isAdmin ? 'Open a period, review requests, keep the room full but not over' : copy().pick}</span></div>
           ${legend}
         </div>
         ${grid}
@@ -1080,8 +1131,8 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   function renderRules() {
     return `
       <section class="rules" id="rules" aria-labelledby="rulesTitle">
-        <div style="display:flex;flex-direction:column;gap:4px;"><span class="eyebrow">Before you head in</span><h2 id="rulesTitle">House rules</h2></div>
-        ${HOUSE_RULES.map((r, i) => `<div class="rule"><span class="num">0${i + 1}</span><p>${r}</p></div>`).join('')}
+        <div style="display:flex;flex-direction:column;gap:4px;"><span class="eyebrow">${copy().rulesEyebrow}</span><h2 id="rulesTitle">${copy().rulesTitle}</h2></div>
+        ${HOUSE_RULES.map((r, i) => `<div class="rule"><span class="num">${copy().nums[i]}</span><p>${r}</p></div>`).join('')}
       </section>`;
   }
 
@@ -1529,10 +1580,10 @@ if (['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParam
   function maybeShowRulesNotice() {
     if (store('pr-rules-seen')) return;
     const { modal, close } = openModal(`
-      <div class="modal-head"><span class="eyebrow-accent">Before you head in</span><h3>House rules</h3></div>
-      <ol class="house">${HOUSE_RULES.map((r, i) => `<li><span class="num">0${i + 1}</span><span>${r}</span></li>`).join('')}</ol>
+      <div class="modal-head"><span class="eyebrow-accent">${copy().rulesEyebrow}</span><h3>${copy().rulesTitle}</h3></div>
+      <ol class="house">${HOUSE_RULES.map((r, i) => `<li><span class="num">${copy().nums[i]}</span><span>${r}</span></li>`).join('')}</ol>
       <div class="modal-actions"><button type="button" class="btn sm primary" id="discOk" style="width:100%;">Got it</button></div>`,
-      { label: 'House rules', onClose: () => store('pr-rules-seen', true) });
+      { label: copy().rulesTitle, onClose: () => store('pr-rules-seen', true) });
     modal.querySelector('#discOk').onclick = close;
   }
 
