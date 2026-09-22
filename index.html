@@ -700,7 +700,13 @@
     .lbl-phone { display: inline; }
     .theme-cycle { display: inline-flex; }
     .style-btn { width: 44px; height: 44px; }
-    .hero { padding-top: 24px; gap: 14px; }
+    .hero { padding-top: 24px; gap: 14px; position: relative; isolation: isolate; }
+    /* Phone photos put bright areas (like the piano keys) behind the headline; a soft band keeps it readable */
+    .hero::before {
+      content: ''; position: absolute; z-index: -1; inset: 0 -16px -8px; pointer-events: none;
+      background: linear-gradient(to bottom, transparent 0, color-mix(in oklch, var(--bg) 62%, transparent) 16%, color-mix(in oklch, var(--bg) 62%, transparent) 84%, transparent 100%);
+    }
+    h1.headline { text-shadow: 0 1px 14px color-mix(in oklch, var(--bg) 80%, transparent); }
     .lede { font-size: 16px; }
     :root[data-genre="classical"] .lede { font-size: 18px; }
     .now { width: 100%; flex-wrap: wrap; gap: 6px 14px; }
