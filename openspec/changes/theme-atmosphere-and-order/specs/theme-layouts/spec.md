@@ -23,9 +23,13 @@ While the theme menu is open, its button SHALL keep a filled background with a c
 - **WHEN** a visitor on a 375px-wide phone opens the theme menu in any theme and look
 - **THEN** the button shows a filled background with its theme symbol still visible against it, at 3:1 or better
 
-### Requirement: Rule numbers sit on their first line
-In the house rules, each number SHALL line up with the first line of its rule text, in every theme.
+### Requirement: Rule numbers line up with their text
+In the house rules, each number SHALL line up with its rule text rather than floating above it. In Jazz and Classical the number SHALL sit on the first line of the text. In Rock the text SHALL be centred against the middle of its number.
+
+#### Scenario: Jazz and Classical rules
+- **WHEN** Jazz's or Classical's rules are shown
+- **THEN** the top of each number is no higher than the top of the first line of its text, and their baselines line up
 
 #### Scenario: Rock rules
 - **WHEN** Rock's rules are shown
-- **THEN** the top of each number is no higher than the top of the first line of its text, and their baselines line up
+- **THEN** each rule's text is centred on the vertical middle of its number

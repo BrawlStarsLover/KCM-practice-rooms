@@ -21,7 +21,12 @@
 - [x] 4.1 Add the `@supports not (animation-timeline: view())` starting state and the IntersectionObserver that reveals rows, re-attached on each render; verify with scroll timelines stubbed out that rows start hidden, fade in on scroll, and end visible
 - [x] 4.2 Confirm the fallback is off under reduced motion and when scroll timelines exist; verify rows are never left hidden in either case
 
-## 5. Ship
+## 5. Owner's follow-ups
 
-- [x] 5.1 Full pass with `?demo`: all six looks at 375px and 1280px, the theme menu, the day tabs and a request; verify no console errors
-- [ ] 5.2 Open a PR and merge after the checks pass; verify the live site shows the treated background and the new order
+- [x] 5.1 Centre Rock's rule text against the middle of its number; verify in Rock that each rule's text middle matches its number's middle, and that Jazz and Classical still sit on the first line
+- [x] 5.2 Change the first house rule to "The entrance door locks 5 min after the period starts."; verify it reads that way on the page and in the pop-up in all three themes
+
+## 6. Ship
+
+- [x] 6.1 Full pass with `?demo`: all six looks at 375px and 1280px, the theme menu, the day tabs and a request; verify no console errors
+- [ ] 6.2 Open a PR and merge after the checks pass; verify the live site shows the treated background and the new order
