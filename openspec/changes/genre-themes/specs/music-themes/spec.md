@@ -18,7 +18,7 @@ Each theme SHALL apply its own colour palette, typefaces, photo background, and 
 
 | | Jazz | Classical | Rock |
 |---|---|---|---|
-| Headline | "Pick a period, / take the stage." | "Pick a period, / begin the overture." | "Pick a period. / Turn it up." |
+| Headline | "Find your groove, / take the stage." | "Find your tempo, / begin the overture." | "Plug in. / Turn it up." |
 | Now strip | "Now playing" | "Now performing" | "On stage now" |
 | Setlist | "This week's setlist" | "This week's programme" | "This week's gigs" |
 | Rules | "Before you head in" / "House rules" | "Before the downbeat" / "Etiquette" | "Before soundcheck" / "Backstage rules" |
@@ -28,7 +28,7 @@ Text SHALL meet 4.5:1 contrast (3:1 for large text) in every theme.
 
 #### Scenario: Classical wording
 - **WHEN** Classical is active
-- **THEN** the headline reads "begin the overture.", the schedule is titled "This week's programme", and the rules are titled "Etiquette" and numbered I, II, III
+- **THEN** the headline reads "Find your tempo, begin the overture.", the schedule is titled "This week's programme", and the rules are titled "Etiquette" and numbered I, II, III
 
 ### Requirement: Light and Dark only for Jazz
 The Light/Dark switch SHALL be shown only while Jazz is active. Classical and Rock SHALL each show their single designed look.
