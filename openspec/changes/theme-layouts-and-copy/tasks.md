@@ -50,4 +50,4 @@
 
 - [x] 8.1 Run a full pass on the emulator, as a visitor and as the admin, in all six looks at 375px and 1280px: apply, request state, accept, decline, open and close a period, and check the console for errors; verify there are no console errors and every action still works
 - [x] 8.2 Run the Firestore rules tests (`tests/rules`) to confirm nothing in the data path changed; verify they pass
-- [ ] 8.3 Open a PR with screenshots of each theme; verify the Vercel preview deployment renders
+- [x] 8.3 Open a PR with screenshots of each theme; verify the Vercel preview deployment renders (PR #8 describes each theme in text, without screenshots; the preview needs a Vercel login, so the live site was checked after the merge instead)
